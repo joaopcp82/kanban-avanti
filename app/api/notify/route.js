@@ -45,7 +45,7 @@ export async function POST(request) {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: 'Kanban Avanti <noreply@kanbanavanti.com.br>',
+        from: 'Kanban Avanti <onboarding@resend.dev>',
         to: [usuario.email],
         subject: `[Kanban Avanti] "${cardTitulo}" → ${novoStatus}`,
         html,
