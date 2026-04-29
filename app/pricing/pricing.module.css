@@ -1,0 +1,114 @@
+.page { min-height: 100vh; background: #f7f6f3; }
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  background: white;
+  border-bottom: 1px solid #e8e5e0;
+}
+.logo { font-size: 20px; font-weight: 600; color: #185fa5; }
+.logo span { color: #1d9e75; }
+.navLink { font-size: 14px; color: #6b6b6b; padding: 6px 12px; border-radius: 6px; }
+.navLink:hover { background: #f0ede8; }
+
+.header { text-align: center; padding: 48px 32px 32px; }
+.title { font-size: 28px; font-weight: 600; margin-bottom: 10px; }
+.sub { font-size: 15px; color: #6b6b6b; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 0 32px 48px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.planCard {
+  background: white;
+  border: 1px solid #e8e5e0;
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative;
+}
+.highlighted {
+  border: 2px solid #185fa5;
+}
+.popularBadge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #185fa5;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 14px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.planName { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.planPrice { font-size: 30px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+.planPeriod { font-size: 12px; color: #6b6b6b; margin-bottom: 20px; }
+
+.features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.feature { display: flex; gap: 8px; font-size: 13px; color: #444; align-items: flex-start; }
+.check { font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+.qtyRow { margin-bottom: 12px; }
+.qtyLabel { display: block; font-size: 12px; color: #6b6b6b; margin-bottom: 5px; }
+.qtyInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e0ddd6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.ctaPrimary {
+  width: 100%;
+  background: #185fa5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ctaPrimary:hover { background: #0c447c; }
+
+.ctaGhost {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: #6b6b6b;
+  border: 1px solid #e0ddd6;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  text-align: center;
+  transition: background 0.15s;
+}
+.ctaGhost:hover { background: #f0ede8; }
+
+.faq {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 32px 64px;
+}
+.faqTitle { font-size: 20px; font-weight: 600; margin-bottom: 24px; text-align: center; }
+.faqGrid { display: flex; flex-direction: column; gap: 16px; }
+.faqItem {
+  background: white;
+  border: 1px solid #e8e5e0;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.faqQ { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.faqA { font-size: 13px; color: #6b6b6b; line-height: 1.6; }
