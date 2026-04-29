@@ -5,17 +5,26 @@ import { supabase } from '../../lib/supabase';
 import styles from './kanban.module.css';
 
 const COLS = [
-  { id: 'pendente',  label: 'Pendentes',       bg: '#e6f1fb', color: '#0c447c' },
-  { id: 'andamento', label: 'Em andamento',     bg: '#faeeda', color: '#633806' },
-  { id: 'blocked',   label: 'Blocked',          bg: '#fcebeb', color: '#791f1f' },
-  { id: 'concluido', label: 'Concluídos',       bg: '#eaf3de', color: '#27500a' },
-  { id: 'backlog',   label: 'Backlog',          bg: '#eeedfe', color: '#3c3489' },
-  { id: 'teste',     label: 'Pronto p/ Teste',  bg: '#fbeaf0', color: '#72243e' },
-  { id: 'publish',   label: 'Ready to Publish', bg: '#e1f5ee', color: '#085041' },
-  { id: 'fechado',   label: 'Fechados',         bg: '#f1efe8', color: '#444441' },
+  { id: 'pendente',  label: 'Pendentes',       bg: '#1e3a5f', color: '#3b82f6' },
+  { id: 'andamento', label: 'Em andamento',     bg: '#3d1f02', color: '#f59e0b' },
+  { id: 'blocked',   label: 'Blocked',          bg: '#3f0808', color: '#ef4444' },
+  { id: 'concluido', label: 'Concluídos',       bg: '#14532d', color: '#22c55e' },
+  { id: 'backlog',   label: 'Backlog',          bg: '#2e1065', color: '#a855f7' },
+  { id: 'teste',     label: 'Pronto p/ Teste',  bg: '#4a0520', color: '#ec4899' },
+  { id: 'publish',   label: 'Ready to Publish', bg: '#022c27', color: '#14b8a6' },
+  { id: 'fechado',   label: 'Fechados',         bg: '#1c1c1c', color: '#6b7280' },
 ];
 
-const EMPTY_CARD = { titulo: '', status: 'pendente', prioridade: 'med', responsavel_id: '', descricao: '' };
+const EMPTY = { titulo: '', status: 'pendente', prioridade: 'med', responsavel_id: '', descricao: '', prazo: '' };
+
+function prazoStatus(prazo) {
+  if (!prazo) return null;
+  const diff = Math.ceil((new Date(prazo) - new Date()) / 86400000);
+  if (diff < 0) return { label: `vencido há ${Math.abs(diff)}d`, color: '#ef4444', bg: '#3f0808' };
+  if (diff === 0) return { label: 'vence hoje', color: '#f59e0b', bg: '#3d1f02' };
+  if (diff <= 3) return { label: `${diff}d restantes`, color: '#f59e0b', bg: '#3d1f02' };
+  return { label: `${diff}d`, color: '#22c55e', bg: '#14532d' };
+}
 
 export default function KanbanPage() {
   const router = useRouter();
@@ -25,17 +34,13 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true);
   const [meusFiltro, setMeusFiltro] = useState(false);
   const [dragId, setDragId] = useState(null);
-
-  // Modal criar
   const [showModal, setShowModal] = useState(false);
-  const [newCard, setNewCard] = useState(EMPTY_CARD);
-
-  // Modal editar
+  const [newCard, setNewCard] = useState(EMPTY);
   const [editCard, setEditCard] = useState(null);
-  const [editForm, setEditForm] = useState(EMPTY_CARD);
-  const [novoComentario, setNovoComentario] = useState('');
+  const [editForm, setEditForm] = useState(EMPTY);
   const [comentarios, setComentarios] = useState([]);
-  const [loadingComentarios, setLoadingComentarios] = useState(false);
+  const [novoComentario, setNovoComentario] = useState('');
+  const [loadingComents, setLoadingComents] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -62,69 +67,76 @@ export default function KanbanPage() {
     return cards.filter(c => c.responsavel_id === session?.usuario?.id);
   }, [cards, meusFiltro, session]);
 
+  // Envia notificação por email via API route
+  const notifyMove = async (card, novoStatus) => {
+    try {
+      const col = COLS.find(c => c.id === novoStatus);
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardTitulo: card.titulo,
+          novoStatus: col?.label || novoStatus,
+          responsavelId: card.responsavel_id,
+          movidoPor: session?.usuario?.nome,
+        }),
+      });
+    } catch (_) {}
+  };
+
   const handleDrop = async (colId) => {
     if (!dragId) return;
     const card = cards.find(c => c.id === dragId);
     if (!card || card.status === colId) return;
     setCards(prev => prev.map(c => c.id === dragId ? { ...c, status: colId } : c));
     await supabase.from('cards').update({ status: colId }).eq('id', dragId);
+    await notifyMove(card, colId);
     setDragId(null);
   };
 
-  const handleCreateCard = async () => {
+  const handleCreate = async () => {
     if (!newCard.titulo.trim()) return;
     setSaving(true);
     const { data, error } = await supabase.from('cards').insert({
-      titulo: newCard.titulo,
-      descricao: newCard.descricao,
-      status: newCard.status,
-      prioridade: newCard.prioridade,
+      titulo: newCard.titulo, descricao: newCard.descricao,
+      status: newCard.status, prioridade: newCard.prioridade,
+      prazo: newCard.prazo || null,
       responsavel_id: newCard.responsavel_id || session.usuario.id,
       criado_por: session.usuario.id,
-      squad_id: session.squad.id,
-      empresa_id: session.empresa.id,
+      squad_id: session.squad.id, empresa_id: session.empresa.id,
     }).select('*, responsavel:responsavel_id(id,nome)').single();
     if (!error && data) setCards(prev => [...prev, data]);
-    setSaving(false);
-    setShowModal(false);
-    setNewCard(EMPTY_CARD);
+    setSaving(false); setShowModal(false); setNewCard(EMPTY);
   };
 
   const openEdit = async (card) => {
     setEditCard(card);
-    setEditForm({
-      titulo: card.titulo,
-      descricao: card.descricao || '',
-      status: card.status,
-      prioridade: card.prioridade,
-      responsavel_id: card.responsavel_id || '',
-    });
+    setEditForm({ titulo: card.titulo, descricao: card.descricao || '', status: card.status, prioridade: card.prioridade, responsavel_id: card.responsavel_id || '', prazo: card.prazo ? card.prazo.slice(0, 10) : '' });
     setNovoComentario('');
-    setLoadingComentarios(true);
-    const { data } = await supabase.from('comentarios')
-      .select('*, autor:autor_id(nome)')
-      .eq('card_id', card.id)
-      .order('created_at');
+    setLoadingComents(true);
+    const { data } = await supabase.from('comentarios').select('*, autor:autor_id(nome)').eq('card_id', card.id).order('created_at');
     setComentarios(data || []);
-    setLoadingComentarios(false);
+    setLoadingComents(false);
   };
 
   const handleSaveEdit = async () => {
     if (!editForm.titulo.trim()) return;
     setSaving(true);
+    const oldStatus = editCard.status;
     const { data } = await supabase.from('cards').update({
-      titulo: editForm.titulo,
-      descricao: editForm.descricao,
-      status: editForm.status,
-      prioridade: editForm.prioridade,
+      titulo: editForm.titulo, descricao: editForm.descricao,
+      status: editForm.status, prioridade: editForm.prioridade,
+      prazo: editForm.prazo || null,
       responsavel_id: editForm.responsavel_id || session.usuario.id,
     }).eq('id', editCard.id).select('*, responsavel:responsavel_id(id,nome)').single();
-    if (data) setCards(prev => prev.map(c => c.id === data.id ? data : c));
-    setSaving(false);
-    setEditCard(null);
+    if (data) {
+      setCards(prev => prev.map(c => c.id === data.id ? data : c));
+      if (oldStatus !== editForm.status) await notifyMove(data, editForm.status);
+    }
+    setSaving(false); setEditCard(null);
   };
 
-  const handleDeleteCard = async () => {
+  const handleDelete = async () => {
     if (!confirm('Apagar este card?')) return;
     await supabase.from('comentarios').delete().eq('card_id', editCard.id);
     await supabase.from('cards').delete().eq('id', editCard.id);
@@ -132,42 +144,35 @@ export default function KanbanPage() {
     setEditCard(null);
   };
 
-  const handleAddComentario = async () => {
+  const handleComment = async () => {
     if (!novoComentario.trim()) return;
     const { data } = await supabase.from('comentarios').insert({
-      card_id: editCard.id,
-      autor_id: session.usuario.id,
-      texto: novoComentario.trim(),
+      card_id: editCard.id, autor_id: session.usuario.id, texto: novoComentario.trim(),
     }).select('*, autor:autor_id(nome)').single();
     if (data) setComentarios(prev => [...prev, data]);
     setNovoComentario('');
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('ka_session');
-    router.push('/login');
-  };
+  const handleLogout = () => { sessionStorage.removeItem('ka_session'); router.push('/login'); };
 
   if (!session) return null;
 
   const vis = visibleCards();
-  const prioLabel = { high: 'Alta', med: 'Média', low: 'Baixa' };
-  const prioBg   = { high: '#fcebeb', med: '#faeeda', low: '#eaf3de' };
-  const prioColor = { high: '#a32d2d', med: '#854f0b', low: '#3b6d11' };
+  const prioColor = { high: '#ef4444', med: '#f59e0b', low: '#22c55e' };
+  const prioBg    = { high: '#3f0808', med: '#3d1f02', low: '#14532d' };
+  const prioLabel = { high: 'alta', med: 'média', low: 'baixa' };
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <div className={styles.logo}>Kanban <span>Avanti</span></div>
-          <div className={styles.breadcrumb}>{session.empresa?.nome} › {session.squad?.nome} › {session.usuario?.nome}</div>
+          <div className={styles.logo}>Kanban<span>Avanti</span><span className={styles.cursor}>_</span></div>
+          <div className={styles.breadcrumb}>{session.empresa?.nome} / {session.squad?.nome} / <span className={styles.breadUser}>{session.usuario?.nome}</span></div>
         </div>
         <div className={styles.headerRight}>
-          <button className={`${styles.filterBtn} ${meusFiltro ? styles.filterActive : ''}`} onClick={() => setMeusFiltro(v => !v)}>
-            Meus cards
-          </button>
-          <button className={styles.addBtn} onClick={() => setShowModal(true)}>+ Novo card</button>
-          <button className={styles.logoutBtn} onClick={handleLogout}>Sair</button>
+          <button className={`${styles.filterBtn} ${meusFiltro ? styles.filterActive : ''}`} onClick={() => setMeusFiltro(v => !v)}>meus cards</button>
+          <button className={styles.addBtn} onClick={() => setShowModal(true)}>+ novo card</button>
+          <button className={styles.logoutBtn} onClick={handleLogout}>sair</button>
         </div>
       </header>
 
@@ -180,34 +185,36 @@ export default function KanbanPage() {
         ))}
       </div>
 
-      {loading ? <div className={styles.loading}>Carregando cards...</div> : (
+      {loading ? <div className={styles.loading}>// carregando cards...</div> : (
         <div className={styles.board}>
           {COLS.map(col => {
             const colCards = vis.filter(c => c.status === col.id);
             return (
               <div key={col.id} className={styles.col}
-                onDragOver={e => { e.preventDefault(); e.currentTarget.style.outline = `2px dashed ${col.color}`; }}
-                onDragLeave={e => { e.currentTarget.style.outline = 'none'; }}
-                onDrop={e => { e.currentTarget.style.outline = 'none'; handleDrop(col.id); }}>
+                style={{ '--col-color': col.color }}
+                onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add(styles.colOver); }}
+                onDragLeave={e => e.currentTarget.classList.remove(styles.colOver)}
+                onDrop={e => { e.currentTarget.classList.remove(styles.colOver); handleDrop(col.id); }}>
                 <div className={styles.colHeader}>
                   <span className={styles.colTitle} style={{ color: col.color }}>{col.label}</span>
-                  <span className={styles.colCount}>{colCards.length}</span>
+                  <span className={styles.colCount} style={{ color: col.color, borderColor: col.color + '44' }}>{colCards.length}</span>
                 </div>
                 <div className={styles.cards}>
                   {colCards.map(card => {
+                    const ps = prazoStatus(card.prazo);
                     const initials = (card.responsavel?.nome || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                     const isMe = card.responsavel_id === session.usuario?.id;
                     return (
                       <div key={card.id} className={styles.card} draggable
-                        onDragStart={() => setDragId(card.id)}
-                        onDragEnd={() => setDragId(null)}
-                        style={{ borderColor: isMe ? col.color : undefined }}
-                        onClick={() => openEdit(card)}>
+                        onDragStart={() => setDragId(card.id)} onDragEnd={() => setDragId(null)}
+                        onClick={() => openEdit(card)}
+                        style={{ borderColor: isMe ? col.color + '88' : undefined }}>
                         <div className={styles.cardTitle}>{card.titulo}</div>
-                        {card.descricao && <div className={styles.cardDesc}>{card.descricao.slice(0, 60)}{card.descricao.length > 60 ? '...' : ''}</div>}
+                        {card.descricao && <div className={styles.cardDesc}>{card.descricao.slice(0, 55)}{card.descricao.length > 55 ? '…' : ''}</div>}
+                        {ps && <div className={styles.prazoTag} style={{ color: ps.color, background: ps.bg, border: `1px solid ${ps.color}44` }}>⏱ {ps.label}</div>}
                         <div className={styles.cardFooter}>
-                          <div className={styles.avatar} style={{ background: col.bg, color: col.color }} title={card.responsavel?.nome}>{initials}</div>
-                          <span className={styles.prio} style={{ background: prioBg[card.prioridade], color: prioColor[card.prioridade] }}>{prioLabel[card.prioridade]}</span>
+                          <div className={styles.avatar} style={{ background: col.bg, color: col.color }}>{initials}</div>
+                          <span className={styles.prio} style={{ color: prioColor[card.prioridade], background: prioBg[card.prioridade] }}>{prioLabel[card.prioridade]}</span>
                         </div>
                       </div>
                     );
@@ -219,107 +226,95 @@ export default function KanbanPage() {
         </div>
       )}
 
-      {/* MODAL CRIAR CARD */}
+      {/* MODAL CRIAR */}
       {showModal && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div className={styles.modal}>
-            <h3 className={styles.modalTitle}>Novo card</h3>
-            <label className={styles.label}>Título *</label>
-            <input className={styles.input} type="text" placeholder="Descreva a tarefa..."
-              value={newCard.titulo} onChange={e => setNewCard(p => ({ ...p, titulo: e.target.value }))} autoFocus />
-            <label className={styles.label}>Descrição / Comentário</label>
-            <textarea className={styles.textarea} placeholder="Detalhes da tarefa..."
-              value={newCard.descricao} onChange={e => setNewCard(p => ({ ...p, descricao: e.target.value }))} />
-            <label className={styles.label}>Status</label>
+            <h3 className={styles.modalTitle}>// novo card</h3>
+            <label className={styles.label}>título *</label>
+            <input className={styles.input} placeholder="descreva a tarefa..." value={newCard.titulo} onChange={e => setNewCard(p => ({ ...p, titulo: e.target.value }))} autoFocus />
+            <label className={styles.label}>descrição</label>
+            <textarea className={styles.textarea} placeholder="detalhes da tarefa..." value={newCard.descricao} onChange={e => setNewCard(p => ({ ...p, descricao: e.target.value }))} />
+            <label className={styles.label}>prazo</label>
+            <input className={styles.input} type="date" value={newCard.prazo} onChange={e => setNewCard(p => ({ ...p, prazo: e.target.value }))} />
+            <label className={styles.label}>status</label>
             <select className={styles.select} value={newCard.status} onChange={e => setNewCard(p => ({ ...p, status: e.target.value }))}>
               {COLS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
-            <label className={styles.label}>Prioridade</label>
+            <label className={styles.label}>prioridade</label>
             <select className={styles.select} value={newCard.prioridade} onChange={e => setNewCard(p => ({ ...p, prioridade: e.target.value }))}>
-              <option value="high">Alta</option><option value="med">Média</option><option value="low">Baixa</option>
+              <option value="high">alta</option><option value="med">média</option><option value="low">baixa</option>
             </select>
-            <label className={styles.label}>Responsável</label>
+            <label className={styles.label}>responsável</label>
             <select className={styles.select} value={newCard.responsavel_id} onChange={e => setNewCard(p => ({ ...p, responsavel_id: e.target.value }))}>
-              <option value="">Eu mesmo ({session.usuario?.nome})</option>
+              <option value="">eu mesmo ({session.usuario?.nome})</option>
               {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
             </select>
             <div className={styles.modalFooter}>
-              <button className={styles.btnCancel} onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className={styles.btnSave} onClick={handleCreateCard} disabled={saving || !newCard.titulo.trim()}>
-                {saving ? 'Salvando...' : 'Criar card'}
-              </button>
+              <button className={styles.btnCancel} onClick={() => setShowModal(false)}>cancelar</button>
+              <button className={styles.btnSave} onClick={handleCreate} disabled={saving || !newCard.titulo.trim()}>{saving ? 'salvando...' : '> criar card'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL EDITAR CARD */}
+      {/* MODAL EDITAR */}
       {editCard && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setEditCard(null); }}>
           <div className={styles.modalLarge}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Editar card</h3>
-              <button className={styles.btnDeleteCard} onClick={handleDeleteCard}>Apagar card</button>
+              <h3 className={styles.modalTitle}>// editar card</h3>
+              <button className={styles.btnDelete} onClick={handleDelete}>apagar</button>
             </div>
-
             <div className={styles.modalBody}>
               <div className={styles.modalLeft}>
-                <label className={styles.label}>Título *</label>
-                <input className={styles.input} value={editForm.titulo}
-                  onChange={e => setEditForm(p => ({ ...p, titulo: e.target.value }))} />
-                <label className={styles.label}>Descrição</label>
-                <textarea className={styles.textarea} placeholder="Detalhes da tarefa..."
-                  value={editForm.descricao} onChange={e => setEditForm(p => ({ ...p, descricao: e.target.value }))} />
-                <label className={styles.label}>Status</label>
+                <label className={styles.label}>título *</label>
+                <input className={styles.input} value={editForm.titulo} onChange={e => setEditForm(p => ({ ...p, titulo: e.target.value }))} />
+                <label className={styles.label}>descrição</label>
+                <textarea className={styles.textarea} value={editForm.descricao} onChange={e => setEditForm(p => ({ ...p, descricao: e.target.value }))} />
+                <label className={styles.label}>prazo</label>
+                <input className={styles.input} type="date" value={editForm.prazo} onChange={e => setEditForm(p => ({ ...p, prazo: e.target.value }))} />
+                <label className={styles.label}>status</label>
                 <select className={styles.select} value={editForm.status} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
                   {COLS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
                 <div className={styles.row2}>
                   <div style={{ flex: 1 }}>
-                    <label className={styles.label}>Prioridade</label>
+                    <label className={styles.label}>prioridade</label>
                     <select className={styles.select} value={editForm.prioridade} onChange={e => setEditForm(p => ({ ...p, prioridade: e.target.value }))}>
-                      <option value="high">Alta</option><option value="med">Média</option><option value="low">Baixa</option>
+                      <option value="high">alta</option><option value="med">média</option><option value="low">baixa</option>
                     </select>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label className={styles.label}>Responsável</label>
+                    <label className={styles.label}>responsável</label>
                     <select className={styles.select} value={editForm.responsavel_id} onChange={e => setEditForm(p => ({ ...p, responsavel_id: e.target.value }))}>
-                      <option value="">— Selecione —</option>
+                      <option value="">— selecione —</option>
                       {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
-
               <div className={styles.modalRight}>
-                <div className={styles.comentariosTitle}>Comentários</div>
-                <div className={styles.comentariosList}>
-                  {loadingComentarios ? <div className={styles.comentarioEmpty}>Carregando...</div> :
-                    comentarios.length === 0 ? <div className={styles.comentarioEmpty}>Nenhum comentário ainda.</div> :
+                <div className={styles.comentTitle}>// comentários</div>
+                <div className={styles.comentList}>
+                  {loadingComents ? <div className={styles.comentEmpty}>carregando...</div> :
+                    comentarios.length === 0 ? <div className={styles.comentEmpty}>// sem comentários ainda</div> :
                     comentarios.map(c => (
-                      <div key={c.id} className={styles.comentario}>
-                        <div className={styles.comentarioAutor}>{c.autor?.nome}</div>
-                        <div className={styles.comentarioTexto}>{c.texto}</div>
-                        <div className={styles.comentarioData}>{new Date(c.created_at).toLocaleString('pt-BR')}</div>
+                      <div key={c.id} className={styles.comment}>
+                        <div className={styles.commentAuthor}>{c.autor?.nome}</div>
+                        <div className={styles.commentText}>{c.texto}</div>
+                        <div className={styles.commentDate}>{new Date(c.created_at).toLocaleString('pt-BR')}</div>
                       </div>
                     ))
                   }
                 </div>
-                <div className={styles.comentarioInput}>
-                  <textarea className={styles.textareaSmall} placeholder="Adicionar comentário..."
-                    value={novoComentario} onChange={e => setNovoComentario(e.target.value)} />
-                  <button className={styles.btnComment} onClick={handleAddComentario} disabled={!novoComentario.trim()}>
-                    Comentar
-                  </button>
-                </div>
+                <textarea className={styles.textareaSmall} placeholder="// adicionar comentário..." value={novoComentario} onChange={e => setNovoComentario(e.target.value)} />
+                <button className={styles.btnComment} onClick={handleComment} disabled={!novoComentario.trim()}>comentar</button>
               </div>
             </div>
-
             <div className={styles.modalFooter}>
-              <button className={styles.btnCancel} onClick={() => setEditCard(null)}>Cancelar</button>
-              <button className={styles.btnSave} onClick={handleSaveEdit} disabled={saving || !editForm.titulo.trim()}>
-                {saving ? 'Salvando...' : 'Salvar alterações'}
-              </button>
+              <button className={styles.btnCancel} onClick={() => setEditCard(null)}>cancelar</button>
+              <button className={styles.btnSave} onClick={handleSaveEdit} disabled={saving || !editForm.titulo.trim()}>{saving ? 'salvando...' : '> salvar'}</button>
             </div>
           </div>
         </div>

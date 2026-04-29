@@ -1,114 +1,41 @@
-.page { min-height: 100vh; background: #f7f6f3; }
+.page { min-height: 100vh; background: var(--bg); }
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; background: var(--bg2); border-bottom: 1px solid var(--border); }
+.logo { font-size: 18px; font-weight: 700; color: var(--text); }
+.logo span:first-of-type { color: var(--blue); margin-left: 4px; }
+.cursor { color: var(--blue); animation: blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.navLink { font-size: 12px; color: var(--text2); padding: 6px 12px; border-radius: var(--radius); }
+.navLink:hover { background: var(--bg3); color: var(--text); }
 
-.nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 40px;
-  background: white;
-  border-bottom: 1px solid #e8e5e0;
-}
-.logo { font-size: 20px; font-weight: 600; color: #185fa5; }
-.logo span { color: #1d9e75; }
-.navLink { font-size: 14px; color: #6b6b6b; padding: 6px 12px; border-radius: 6px; }
-.navLink:hover { background: #f0ede8; }
+.header { text-align: center; padding: 56px 32px 36px; }
+.badge { font-size: 11px; color: var(--blue); margin-bottom: 14px; }
+.title { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 10px; letter-spacing: -.02em; }
+.sub { font-size: 13px; color: var(--text2); }
 
-.header { text-align: center; padding: 48px 32px 32px; }
-.title { font-size: 28px; font-weight: 600; margin-bottom: 10px; }
-.sub { font-size: 15px; color: #6b6b6b; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; padding: 0 32px 48px; max-width: 900px; margin: 0 auto; }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  padding: 0 32px 48px;
-  max-width: 900px;
-  margin: 0 auto;
-}
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 22px; position: relative; }
+.highlighted { border-color: var(--blue); box-shadow: 0 0 24px var(--blue-glow); }
+.popularBadge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 10px; font-weight: 600; padding: 3px 14px; border-radius: 99px; white-space: nowrap; }
 
-.planCard {
-  background: white;
-  border: 1px solid #e8e5e0;
-  border-radius: 16px;
-  padding: 28px 24px;
-  position: relative;
-}
-.highlighted {
-  border: 2px solid #185fa5;
-}
-.popularBadge {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #185fa5;
-  color: white;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 4px 14px;
-  border-radius: 99px;
-  white-space: nowrap;
-}
+.planLabel { font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+.planPrice { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.planPeriod { font-size: 11px; color: var(--text2); margin-bottom: 20px; }
 
-.planName { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
-.planPrice { font-size: 30px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
-.planPeriod { font-size: 12px; color: #6b6b6b; margin-bottom: 20px; }
+.features { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+.feature { font-size: 12px; color: var(--text2); display: flex; gap: 8px; align-items: flex-start; }
 
-.features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
-.feature { display: flex; gap: 8px; font-size: 13px; color: #444; align-items: flex-start; }
-.check { font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.qtyRow { margin-bottom: 10px; }
+.qtyLabel { display: block; font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+.qtyInput { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: var(--bg3); color: var(--text); font-family: var(--font); }
 
-.qtyRow { margin-bottom: 12px; }
-.qtyLabel { display: block; font-size: 12px; color: #6b6b6b; margin-bottom: 5px; }
-.qtyInput {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #e0ddd6;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-}
+.ctaPrimary { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); padding: 11px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+.ctaPrimary:hover { opacity: .85; }
+.ctaGhost { display: block; width: 100%; background: none; color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 11px; font-size: 12px; text-align: center; transition: all .15s; }
+.ctaGhost:hover { border-color: var(--blue); color: var(--blue); }
 
-.ctaPrimary {
-  width: 100%;
-  background: #185fa5;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.ctaPrimary:hover { background: #0c447c; }
-
-.ctaGhost {
-  display: block;
-  width: 100%;
-  background: transparent;
-  color: #6b6b6b;
-  border: 1px solid #e0ddd6;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 14px;
-  text-align: center;
-  transition: background 0.15s;
-}
-.ctaGhost:hover { background: #f0ede8; }
-
-.faq {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 0 32px 64px;
-}
-.faqTitle { font-size: 20px; font-weight: 600; margin-bottom: 24px; text-align: center; }
-.faqGrid { display: flex; flex-direction: column; gap: 16px; }
-.faqItem {
-  background: white;
-  border: 1px solid #e8e5e0;
-  border-radius: 10px;
-  padding: 16px 20px;
-}
-.faqQ { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-.faqA { font-size: 13px; color: #6b6b6b; line-height: 1.6; }
+.faq { max-width: 640px; margin: 0 auto; padding: 0 32px 72px; }
+.faqTitle { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 20px; }
+.faqItem { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 10px; }
+.faqQ { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.faqA { font-size: 12px; color: var(--text2); line-height: 1.6; }

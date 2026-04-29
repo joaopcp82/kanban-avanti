@@ -44,7 +44,7 @@ export default function LoginPage() {
     setLoading(true); setErro('');
     const usuario = usuarios.find(u => u.id === selectedUsuario);
     const senhaCorreta = usuario?.senha || '123';
-    if (senha !== senhaCorreta) { setErro('Senha incorreta.'); setLoading(false); return; }
+    if (senha !== senhaCorreta) { setErro('// senha incorreta'); setLoading(false); return; }
     const empresa = empresas.find(e => e.id === selectedEmpresa);
     const squad = squads.find(s => s.id === selectedSquad);
     sessionStorage.setItem('ka_session', JSON.stringify({ empresa, squad, usuario }));
@@ -54,54 +54,54 @@ export default function LoginPage() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <Link href="/" className={styles.logo}>Kanban <span>Avanti</span></Link>
-        <p className={styles.sub}>Selecione sua empresa para continuar</p>
+        <Link href="/" className={styles.logo}>Kanban<span>Avanti</span><span className={styles.cursor}>_</span></Link>
+        <p className={styles.sub}>// selecione sua empresa para continuar</p>
         <div className={styles.card}>
           <div className={styles.field}>
-            <label className={styles.label}>Empresa</label>
+            <label className={styles.label}>$ empresa</label>
             <select className={styles.select} value={selectedEmpresa} onChange={e => handleEmpresa(e.target.value)} disabled={loadingEmpresas}>
-              <option value="">{loadingEmpresas ? 'Carregando...' : 'Selecione a empresa...'}</option>
+              <option value="">{loadingEmpresas ? 'carregando...' : 'selecione a empresa...'}</option>
               {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </div>
           {squads.length > 0 && (
             <div className={styles.field}>
-              <label className={styles.label}>Squad</label>
+              <label className={styles.label}>$ squad</label>
               <select className={styles.select} value={selectedSquad} onChange={e => handleSquad(e.target.value)}>
-                <option value="">Selecione a squad...</option>
+                <option value="">selecione a squad...</option>
                 {squads.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
               </select>
             </div>
           )}
           {usuarios.length > 0 && (
             <div className={styles.field}>
-              <label className={styles.label}>Usuário</label>
+              <label className={styles.label}>$ usuário</label>
               <select className={styles.select} value={selectedUsuario} onChange={e => { setSelectedUsuario(e.target.value); setSenha(''); setErro(''); }}>
-                <option value="">Selecione o usuário...</option>
+                <option value="">selecione o usuário...</option>
                 {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
               </select>
             </div>
           )}
           {selectedUsuario && (
             <div className={styles.field}>
-              <label className={styles.label}>Senha</label>
-              <input className={styles.input} type="password" placeholder="Digite sua senha..."
+              <label className={styles.label}>$ senha</label>
+              <input className={styles.input} type="password" placeholder="••••••••"
                 value={senha} onChange={e => { setSenha(e.target.value); setErro(''); }}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus />
-              <div className={styles.senhaHint}>Senha padrão: 123 (caso não tenha alterado)</div>
+              <div className={styles.hint}>// senha padrão: 123</div>
             </div>
           )}
           {erro && <div className={styles.erro}>{erro}</div>}
           <button className={styles.btnLogin} onClick={handleLogin}
             disabled={!selectedEmpresa || !selectedSquad || !selectedUsuario || !senha || loading}>
-            {loading ? 'Entrando...' : 'Entrar no Kanban'}
+            {loading ? 'autenticando...' : '> entrar no kanban'}
           </button>
           <div className={styles.footer}>
-            <span>Não tem conta?</span>{' '}
-            <Link href="/pricing" className={styles.link}>Ver planos</Link>
+            <span>sem conta?</span>{' '}
+            <Link href="/pricing" className={styles.link}>ver planos</Link>
           </div>
         </div>
-        <Link href="/" className={styles.back}>← Voltar ao site</Link>
+        <Link href="/" className={styles.back}>← voltar ao site</Link>
       </div>
     </div>
   );
