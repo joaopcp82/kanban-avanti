@@ -12,15 +12,15 @@ export default function AdminPage() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modals
   const [modalEmpresa, setModalEmpresa] = useState(false);
   const [modalSquad, setModalSquad] = useState(false);
   const [modalUsuario, setModalUsuario] = useState(false);
+  const [modalSenha, setModalSenha] = useState(null); // usuario object
 
-  // Forms
   const [novaEmpresa, setNovaEmpresa] = useState({ nome: '', slug: '', plano: 'free' });
   const [novaSquad, setNovaSquad] = useState({ nome: '', empresa_id: '' });
-  const [novoUsuario, setNovoUsuario] = useState({ nome: '', email: '', squad_id: '', empresa_id: '' });
+  const [novoUsuario, setNovoUsuario] = useState({ nome: '', email: '', squad_id: '', senha: '123' });
+  const [novaSenha, setNovaSenha] = useState('');
   const [saving, setSaving] = useState(false);
   const [senha, setSenha] = useState('');
   const [autenticado, setAutenticado] = useState(false);
@@ -46,20 +46,15 @@ export default function AdminPage() {
   };
 
   const handleLogin = () => {
-    if (senha === ADMIN_SENHA) {
-      sessionStorage.setItem('ka_admin', 'true');
-      setAutenticado(true);
-      loadAll();
-    } else {
-      alert('Senha incorreta!');
-    }
+    if (senha === ADMIN_SENHA) { sessionStorage.setItem('ka_admin', 'true'); setAutenticado(true); loadAll(); }
+    else alert('Senha incorreta!');
   };
 
   const handleNovaEmpresa = async () => {
     if (!novaEmpresa.nome || !novaEmpresa.slug) return;
     setSaving(true);
     const { error } = await supabase.from('empresas').insert(novaEmpresa);
-    if (error) { alert('Erro: ' + error.message); }
+    if (error) alert('Erro: ' + error.message);
     else { await loadAll(); setModalEmpresa(false); setNovaEmpresa({ nome: '', slug: '', plano: 'free' }); }
     setSaving(false);
   };
@@ -68,7 +63,7 @@ export default function AdminPage() {
     if (!novaSquad.nome || !novaSquad.empresa_id) return;
     setSaving(true);
     const { error } = await supabase.from('squads').insert(novaSquad);
-    if (error) { alert('Erro: ' + error.message); }
+    if (error) alert('Erro: ' + error.message);
     else { await loadAll(); setModalSquad(false); setNovaSquad({ nome: '', empresa_id: '' }); }
     setSaving(false);
   };
@@ -78,12 +73,31 @@ export default function AdminPage() {
     setSaving(true);
     const squad = squads.find(s => s.id === novoUsuario.squad_id);
     const { error } = await supabase.from('usuarios').insert({
-      ...novoUsuario,
+      nome: novoUsuario.nome,
+      email: novoUsuario.email,
+      squad_id: novoUsuario.squad_id,
       empresa_id: squad?.empresa_id,
+      senha: novoUsuario.senha || '123',
     });
-    if (error) { alert('Erro: ' + error.message); }
-    else { await loadAll(); setModalUsuario(false); setNovoUsuario({ nome: '', email: '', squad_id: '', empresa_id: '' }); }
+    if (error) alert('Erro: ' + error.message);
+    else { await loadAll(); setModalUsuario(false); setNovoUsuario({ nome: '', email: '', squad_id: '', senha: '123' }); }
     setSaving(false);
+  };
+
+  const handleSalvarSenha = async () => {
+    if (!novaSenha.trim()) { alert('Digite a nova senha.'); return; }
+    setSaving(true);
+    const { error } = await supabase.from('usuarios').update({ senha: novaSenha }).eq('id', modalSenha.id);
+    if (error) alert('Erro: ' + error.message);
+    else { await loadAll(); setModalSenha(null); setNovaSenha(''); alert('Senha alterada com sucesso!'); }
+    setSaving(false);
+  };
+
+  const handleSetSenhaPadrao = async (u) => {
+    if (!confirm(`Resetar senha de "${u.nome}" para 123?`)) return;
+    await supabase.from('usuarios').update({ senha: '123' }).eq('id', u.id);
+    await loadAll();
+    alert('Senha resetada para 123.');
   };
 
   const handleDeleteEmpresa = async (id) => {
@@ -109,7 +123,6 @@ export default function AdminPage() {
     await loadAll();
   };
 
-  // Tela de login admin
   if (!autenticado) {
     return (
       <div className={styles.loginPage}>
@@ -117,15 +130,9 @@ export default function AdminPage() {
           <div className={styles.logo}>Kanban <span>Avanti</span></div>
           <div className={styles.loginTitle}>Painel Administrativo</div>
           <label className={styles.label}>Senha de acesso</label>
-          <input
-            className={styles.input}
-            type="password"
-            placeholder="Digite a senha..."
-            value={senha}
-            onChange={e => setSenha(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            autoFocus
-          />
+          <input className={styles.input} type="password" placeholder="Digite a senha..."
+            value={senha} onChange={e => setSenha(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus />
           <button className={styles.btnPrimary} onClick={handleLogin}>Entrar</button>
           <button className={styles.btnGhost} onClick={() => router.push('/')}>Voltar ao site</button>
         </div>
@@ -147,37 +154,22 @@ export default function AdminPage() {
       </header>
 
       <div className={styles.statsRow}>
-        <div className={styles.stat}>
-          <div className={styles.statVal} style={{ color: '#185fa5' }}>{empresas.length}</div>
-          <div className={styles.statLabel}>Empresas</div>
-        </div>
-        <div className={styles.stat}>
-          <div className={styles.statVal} style={{ color: '#1d9e75' }}>{squads.length}</div>
-          <div className={styles.statLabel}>Squads</div>
-        </div>
-        <div className={styles.stat}>
-          <div className={styles.statVal} style={{ color: '#ba7517' }}>{usuarios.length}</div>
-          <div className={styles.statLabel}>Usuários</div>
-        </div>
-        <div className={styles.stat}>
-          <div className={styles.statVal} style={{ color: '#993056' }}>{usuarios.filter(u => u.ativo).length}</div>
-          <div className={styles.statLabel}>Usuários ativos</div>
-        </div>
+        <div className={styles.stat}><div className={styles.statVal} style={{ color: '#185fa5' }}>{empresas.length}</div><div className={styles.statLabel}>Empresas</div></div>
+        <div className={styles.stat}><div className={styles.statVal} style={{ color: '#1d9e75' }}>{squads.length}</div><div className={styles.statLabel}>Squads</div></div>
+        <div className={styles.stat}><div className={styles.statVal} style={{ color: '#ba7517' }}>{usuarios.length}</div><div className={styles.statLabel}>Usuários</div></div>
+        <div className={styles.stat}><div className={styles.statVal} style={{ color: '#993056' }}>{usuarios.filter(u => u.ativo).length}</div><div className={styles.statLabel}>Ativos</div></div>
       </div>
 
       <div className={styles.tabs}>
         {['empresas', 'squads', 'usuarios'].map(t => (
-          <button
-            key={t}
-            className={`${styles.tab} ${tab === t ? styles.tabActive : ''}`}
-            onClick={() => setTab(t)}
-          >
+          <button key={t} className={`${styles.tab} ${tab === t ? styles.tabActive : ''}`} onClick={() => setTab(t)}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
 
       <div className={styles.content}>
+
         {/* EMPRESAS */}
         {tab === 'empresas' && (
           <div>
@@ -187,20 +179,14 @@ export default function AdminPage() {
             </div>
             {loading ? <div className={styles.loading}>Carregando...</div> : (
               <div className={styles.table}>
-                <div className={styles.tableHead}>
-                  <span>Nome</span><span>Slug</span><span>Plano</span><span>Squads</span><span>Ações</span>
-                </div>
+                <div className={styles.tableHead}><span>Nome</span><span>Slug</span><span>Plano</span><span>Squads</span><span>Ações</span></div>
                 {empresas.map(e => (
                   <div key={e.id} className={styles.tableRow}>
                     <span className={styles.rowName}>{e.nome}</span>
                     <span className={styles.rowMono}>{e.slug}</span>
-                    <span>
-                      <span className={`${styles.planBadge} ${styles['plan_' + e.plano]}`}>{e.plano}</span>
-                    </span>
+                    <span><span className={`${styles.planBadge} ${styles['plan_' + e.plano]}`}>{e.plano}</span></span>
                     <span>{squads.filter(s => s.empresa_id === e.id).length} squad(s)</span>
-                    <span>
-                      <button className={styles.btnDelete} onClick={() => handleDeleteEmpresa(e.id)}>Apagar</button>
-                    </span>
+                    <span><button className={styles.btnDelete} onClick={() => handleDeleteEmpresa(e.id)}>Apagar</button></span>
                   </div>
                 ))}
                 {empresas.length === 0 && <div className={styles.empty}>Nenhuma empresa cadastrada.</div>}
@@ -218,17 +204,13 @@ export default function AdminPage() {
             </div>
             {loading ? <div className={styles.loading}>Carregando...</div> : (
               <div className={styles.table}>
-                <div className={styles.tableHead}>
-                  <span>Nome</span><span>Empresa</span><span>Usuários</span><span>Ações</span>
-                </div>
+                <div className={styles.tableHead}><span>Nome</span><span>Empresa</span><span>Usuários</span><span>Ações</span></div>
                 {squads.map(s => (
                   <div key={s.id} className={styles.tableRow}>
                     <span className={styles.rowName}>{s.nome}</span>
                     <span>{s.empresa?.nome}</span>
                     <span>{usuarios.filter(u => u.squad_id === s.id).length} usuário(s)</span>
-                    <span>
-                      <button className={styles.btnDelete} onClick={() => handleDeleteSquad(s.id)}>Apagar</button>
-                    </span>
+                    <span><button className={styles.btnDelete} onClick={() => handleDeleteSquad(s.id)}>Apagar</button></span>
                   </div>
                 ))}
                 {squads.length === 0 && <div className={styles.empty}>Nenhuma squad cadastrada.</div>}
@@ -246,26 +228,22 @@ export default function AdminPage() {
             </div>
             {loading ? <div className={styles.loading}>Carregando...</div> : (
               <div className={styles.table}>
-                <div className={styles.tableHead}>
-                  <span>Nome</span><span>E-mail</span><span>Squad</span><span>Empresa</span><span>Status</span><span>Ações</span>
-                </div>
+                <div className={styles.tableHeadWide}><span>Nome</span><span>E-mail</span><span>Squad</span><span>Status</span><span>Senha</span><span>Ações</span></div>
                 {usuarios.map(u => (
-                  <div key={u.id} className={styles.tableRow}>
+                  <div key={u.id} className={styles.tableRowWide}>
                     <span className={styles.rowName}>{u.nome}</span>
                     <span className={styles.rowMono}>{u.email}</span>
                     <span>{u.squad?.nome}</span>
-                    <span>{u.empresa?.nome}</span>
                     <span>
-                      <button
-                        className={u.ativo ? styles.badgeAtivo : styles.badgeInativo}
-                        onClick={() => toggleUsuarioAtivo(u)}
-                      >
+                      <button className={u.ativo ? styles.badgeAtivo : styles.badgeInativo} onClick={() => toggleUsuarioAtivo(u)}>
                         {u.ativo ? 'Ativo' : 'Inativo'}
                       </button>
                     </span>
-                    <span>
-                      <button className={styles.btnDelete} onClick={() => handleDeleteUsuario(u.id)}>Apagar</button>
+                    <span className={styles.senhaActions}>
+                      <button className={styles.btnSenha} onClick={() => { setModalSenha(u); setNovaSenha(''); }}>Editar senha</button>
+                      <button className={styles.btnReset} onClick={() => handleSetSenhaPadrao(u)} title="Resetar para 123">↺ 123</button>
                     </span>
+                    <span><button className={styles.btnDelete} onClick={() => handleDeleteUsuario(u.id)}>Apagar</button></span>
                   </div>
                 ))}
                 {usuarios.length === 0 && <div className={styles.empty}>Nenhum usuário cadastrado.</div>}
@@ -282,26 +260,19 @@ export default function AdminPage() {
             <h3 className={styles.modalTitle}>Nova empresa</h3>
             <label className={styles.label}>Nome da empresa</label>
             <input className={styles.input} placeholder="Ex: Minha Empresa Ltda" value={novaEmpresa.nome}
-              onChange={e => {
-                const nome = e.target.value;
-                const slug = nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                setNovaEmpresa(p => ({ ...p, nome, slug }));
-              }} />
+              onChange={e => { const nome = e.target.value; const slug = nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''); setNovaEmpresa(p => ({ ...p, nome, slug })); }} />
             <label className={styles.label}>Slug (identificador único)</label>
             <input className={styles.input} placeholder="Ex: minha-empresa" value={novaEmpresa.slug}
               onChange={e => setNovaEmpresa(p => ({ ...p, slug: e.target.value }))} />
             <label className={styles.label}>Plano</label>
-            <select className={styles.select} value={novaEmpresa.plano}
-              onChange={e => setNovaEmpresa(p => ({ ...p, plano: e.target.value }))}>
+            <select className={styles.select} value={novaEmpresa.plano} onChange={e => setNovaEmpresa(p => ({ ...p, plano: e.target.value }))}>
               <option value="free">Gratuito</option>
               <option value="pro">Pro — R$ 1,99/usuário</option>
               <option value="enterprise">Enterprise</option>
             </select>
             <div className={styles.modalFooter}>
               <button className={styles.btnGhost} onClick={() => setModalEmpresa(false)}>Cancelar</button>
-              <button className={styles.btnPrimary} onClick={handleNovaEmpresa} disabled={saving}>
-                {saving ? 'Salvando...' : 'Criar empresa'}
-              </button>
+              <button className={styles.btnPrimary} onClick={handleNovaEmpresa} disabled={saving}>{saving ? 'Salvando...' : 'Criar empresa'}</button>
             </div>
           </div>
         </div>
@@ -313,8 +284,7 @@ export default function AdminPage() {
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>Nova squad</h3>
             <label className={styles.label}>Empresa</label>
-            <select className={styles.select} value={novaSquad.empresa_id}
-              onChange={e => setNovaSquad(p => ({ ...p, empresa_id: e.target.value }))}>
+            <select className={styles.select} value={novaSquad.empresa_id} onChange={e => setNovaSquad(p => ({ ...p, empresa_id: e.target.value }))}>
               <option value="">Selecione a empresa...</option>
               {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
@@ -323,9 +293,7 @@ export default function AdminPage() {
               onChange={e => setNovaSquad(p => ({ ...p, nome: e.target.value }))} />
             <div className={styles.modalFooter}>
               <button className={styles.btnGhost} onClick={() => setModalSquad(false)}>Cancelar</button>
-              <button className={styles.btnPrimary} onClick={handleNovaSquad} disabled={saving}>
-                {saving ? 'Salvando...' : 'Criar squad'}
-              </button>
+              <button className={styles.btnPrimary} onClick={handleNovaSquad} disabled={saving}>{saving ? 'Salvando...' : 'Criar squad'}</button>
             </div>
           </div>
         </div>
@@ -343,15 +311,34 @@ export default function AdminPage() {
             <input className={styles.input} type="email" placeholder="Ex: joao@empresa.com" value={novoUsuario.email}
               onChange={e => setNovoUsuario(p => ({ ...p, email: e.target.value }))} />
             <label className={styles.label}>Squad</label>
-            <select className={styles.select} value={novoUsuario.squad_id}
-              onChange={e => setNovoUsuario(p => ({ ...p, squad_id: e.target.value }))}>
+            <select className={styles.select} value={novoUsuario.squad_id} onChange={e => setNovoUsuario(p => ({ ...p, squad_id: e.target.value }))}>
               <option value="">Selecione a squad...</option>
               {squads.map(s => <option key={s.id} value={s.id}>{s.empresa?.nome} — {s.nome}</option>)}
             </select>
+            <label className={styles.label}>Senha inicial</label>
+            <input className={styles.input} type="text" placeholder="Padrão: 123" value={novoUsuario.senha}
+              onChange={e => setNovoUsuario(p => ({ ...p, senha: e.target.value }))} />
             <div className={styles.modalFooter}>
               <button className={styles.btnGhost} onClick={() => setModalUsuario(false)}>Cancelar</button>
-              <button className={styles.btnPrimary} onClick={handleNovoUsuario} disabled={saving}>
-                {saving ? 'Salvando...' : 'Criar usuário'}
+              <button className={styles.btnPrimary} onClick={handleNovoUsuario} disabled={saving}>{saving ? 'Salvando...' : 'Criar usuário'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR SENHA */}
+      {modalSenha && (
+        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalSenha(null); }}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>Editar senha</h3>
+            <div className={styles.senhaUsuario}>Usuário: <strong>{modalSenha.nome}</strong></div>
+            <label className={styles.label}>Nova senha</label>
+            <input className={styles.input} type="text" placeholder="Digite a nova senha..."
+              value={novaSenha} onChange={e => setNovaSenha(e.target.value)} autoFocus />
+            <div className={styles.modalFooter}>
+              <button className={styles.btnGhost} onClick={() => setModalSenha(null)}>Cancelar</button>
+              <button className={styles.btnPrimary} onClick={handleSalvarSenha} disabled={saving || !novaSenha.trim()}>
+                {saving ? 'Salvando...' : 'Salvar senha'}
               </button>
             </div>
           </div>

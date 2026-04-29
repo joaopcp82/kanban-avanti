@@ -97,3 +97,17 @@
   color: #6b6b6b;
 }
 .back:hover { color: #185fa5; }
+
+.senhaHint {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}
+.erro {
+  font-size: 13px;
+  color: #a32d2d;
+  background: #fcebeb;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 4px;
+}

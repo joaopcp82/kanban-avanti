@@ -168,6 +168,65 @@
 .empty { padding: 24px; text-align: center; color: #6b6b6b; font-size: 14px; }
 .loading { padding: 24px; text-align: center; color: #6b6b6b; font-size: 14px; }
 
+.tableHeadWide {
+  display: grid;
+  grid-template-columns: 1.5fr 2fr 1fr 0.8fr 1.2fr 0.8fr;
+  padding: 10px 16px;
+  background: #f7f6f3;
+  border-bottom: 1px solid #e8e5e0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.tableRowWide {
+  display: grid;
+  grid-template-columns: 1.5fr 2fr 1fr 0.8fr 1.2fr 0.8fr;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0ede8;
+  align-items: center;
+  font-size: 13px;
+  color: #1a1a1a;
+  transition: background 0.1s;
+}
+.tableRowWide:last-child { border-bottom: none; }
+.tableRowWide:hover { background: #fafaf8; }
+
+.senhaActions { display: flex; gap: 4px; align-items: center; }
+.btnSenha {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: #e6f1fb;
+  color: #185fa5;
+  border: 1px solid #b5d4f4;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btnSenha:hover { background: #cce3f7; }
+.btnReset {
+  font-size: 11px;
+  padding: 3px 7px;
+  background: #faeeda;
+  color: #854f0b;
+  border: 1px solid #f4c881;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btnReset:hover { background: #f5d9a0; }
+
+.senhaUsuario {
+  font-size: 13px;
+  color: #6b6b6b;
+  margin-bottom: 4px;
+  padding: 8px 12px;
+  background: #f7f6f3;
+  border-radius: 6px;
+}
+
 .btnAdd {
   font-size: 13px;
   font-weight: 500;
