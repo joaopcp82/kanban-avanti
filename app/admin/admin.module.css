@@ -42,6 +42,10 @@
 
 .badgeOn { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: var(--green-dim); color: var(--green); border: none; cursor: pointer; font-family: var(--font); }
 .badgeOff { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: var(--red-dim); color: var(--red); border: none; cursor: pointer; font-family: var(--font); }
+.badgeMaster { font-size: 13px; padding: 2px 8px; border-radius: 4px; background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); cursor: pointer; font-family: var(--font); }
+.badgeMaster:hover { opacity: .8; }
+.badgeNoMaster { font-size: 13px; padding: 2px 8px; border-radius: 4px; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); cursor: pointer; font-family: var(--font); }
+.badgeNoMaster:hover { border-color: var(--amber); color: var(--amber); }
 
 .senhaRow { display: flex; gap: 4px; }
 .btnSenha { font-size: 10px; padding: 3px 8px; background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue-dim); border-radius: 4px; cursor: pointer; font-family: var(--font); }

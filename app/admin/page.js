@@ -89,6 +89,14 @@ export default function AdminPage() {
     await loadAll();
   };
 
+  const toggleAtivo = async (u) => {
+    await supabase.from('usuarios').update({ ativo: !u.ativo }).eq('id', u.id); await loadAll();
+  };
+
+  const toggleMaster = async (u) => {
+    await supabase.from('usuarios').update({ master: !u.master }).eq('id', u.id); await loadAll();
+  };
+
   const handleDeleteEmpresa = async (id) => {
     if (!confirm('Apagar empresa e todos os seus dados?')) return;
     await supabase.from('empresas').delete().eq('id', id); await loadAll();
@@ -100,9 +108,6 @@ export default function AdminPage() {
   const handleDeleteUsuario = async (id) => {
     if (!confirm('Apagar usuário?')) return;
     await supabase.from('usuarios').delete().eq('id', id); await loadAll();
-  };
-  const toggleAtivo = async (u) => {
-    await supabase.from('usuarios').update({ ativo: !u.ativo }).eq('id', u.id); await loadAll();
   };
 
   if (!autenticado) {
@@ -130,6 +135,7 @@ export default function AdminPage() {
           <div className={styles.adminBadge}>admin</div>
         </div>
         <div className={styles.headerRight}>
+          <button className={styles.btnSmall} onClick={() => router.push('/dashboard')}>dashboard</button>
           <button className={styles.btnSmall} onClick={() => router.push('/login')}>ver app</button>
           <button className={styles.btnDanger} onClick={() => { sessionStorage.removeItem('ka_admin'); setAutenticado(false); }}>sair</button>
         </div>
@@ -140,7 +146,7 @@ export default function AdminPage() {
           { val: empresas.length, label: 'empresas', color: '#3b82f6' },
           { val: squads.length, label: 'squads', color: '#22c55e' },
           { val: usuarios.length, label: 'usuários', color: '#f59e0b' },
-          { val: usuarios.filter(u => u.ativo).length, label: 'ativos', color: '#a855f7' },
+          { val: usuarios.filter(u => u.master).length, label: 'masters', color: '#a855f7' },
         ].map(s => (
           <div key={s.label} className={styles.stat}>
             <div className={styles.statVal} style={{ color: s.color }}>{s.val}</div>
@@ -210,17 +216,22 @@ export default function AdminPage() {
               <button className={styles.btnAdd} onClick={() => setModalUsuario(true)}>+ novo usuário</button>
             </div>
             <div className={styles.table}>
-              <div className={styles.thead} style={{ gridTemplateColumns: '1.5fr 2fr 1fr 0.7fr 1.5fr 0.8fr' }}>
-                <span>nome</span><span>e-mail</span><span>squad</span><span>status</span><span>senha</span><span>ações</span>
+              <div className={styles.thead} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.6fr 0.6fr 1.2fr 0.7fr' }}>
+                <span>nome</span><span>e-mail</span><span>squad</span><span>status</span><span>master</span><span>senha</span><span>ações</span>
               </div>
               {loading ? <div className={styles.empty}>carregando...</div> : usuarios.map(u => (
-                <div key={u.id} className={styles.trow} style={{ gridTemplateColumns: '1.5fr 2fr 1fr 0.7fr 1.5fr 0.8fr' }}>
+                <div key={u.id} className={styles.trow} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.6fr 0.6fr 1.2fr 0.7fr' }}>
                   <span className={styles.rowName}>{u.nome}</span>
                   <span className={styles.mono}>{u.email}</span>
                   <span>{u.squad?.nome}</span>
                   <span>
                     <button className={u.ativo ? styles.badgeOn : styles.badgeOff} onClick={() => toggleAtivo(u)}>
                       {u.ativo ? 'ativo' : 'inativo'}
+                    </button>
+                  </span>
+                  <span>
+                    <button className={u.master ? styles.badgeMaster : styles.badgeNoMaster} onClick={() => toggleMaster(u)}>
+                      {u.master ? '★' : '☆'}
                     </button>
                   </span>
                   <span className={styles.senhaRow}>
@@ -236,7 +247,6 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* MODAL EMPRESA */}
       {modalEmpresa && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalEmpresa(false); }}>
           <div className={styles.modal}>
@@ -258,7 +268,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL SQUAD */}
       {modalSquad && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalSquad(false); }}>
           <div className={styles.modal}>
@@ -278,7 +287,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL USUÁRIO */}
       {modalUsuario && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalUsuario(false); }}>
           <div className={styles.modal}>
@@ -302,7 +310,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL SENHA */}
       {modalSenha && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalSenha(null); }}>
           <div className={styles.modal}>
