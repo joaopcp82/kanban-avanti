@@ -4,6 +4,11 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import styles from './admin.module.css';
 
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('pt-BR');
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [tab, setTab] = useState('empresas');
@@ -17,7 +22,7 @@ export default function AdminPage() {
   const [modalSenha, setModalSenha] = useState(null);
   const [novaEmpresa, setNovaEmpresa] = useState({ nome: '', slug: '', plano: 'free' });
   const [novaSquad, setNovaSquad] = useState({ nome: '', empresa_id: '' });
-  const [novoUsuario, setNovoUsuario] = useState({ nome: '', email: '', squad_id: '', senha: '123' });
+  const [novoUsuario, setNovoUsuario] = useState({ nome: '', email: '', squad_id: '', senha: '123', tipo: 'tecnico', pode_excluir: false });
   const [novaSenha, setNovaSenha] = useState('');
   const [saving, setSaving] = useState(false);
   const [senha, setSenha] = useState('');
@@ -68,9 +73,16 @@ export default function AdminPage() {
     if (!novoUsuario.nome || !novoUsuario.email || !novoUsuario.squad_id) return;
     setSaving(true);
     const squad = squads.find(s => s.id === novoUsuario.squad_id);
-    const { error } = await supabase.from('usuarios').insert({ ...novoUsuario, empresa_id: squad?.empresa_id, senha: novoUsuario.senha || '123' });
+    const master = novoUsuario.tipo === 'master';
+    const { error } = await supabase.from('usuarios').insert({
+      nome: novoUsuario.nome, email: novoUsuario.email,
+      squad_id: novoUsuario.squad_id, empresa_id: squad?.empresa_id,
+      senha: novoUsuario.senha || '123',
+      tipo: novoUsuario.tipo, master,
+      pode_excluir: novoUsuario.pode_excluir,
+    });
     if (error) alert('Erro: ' + error.message);
-    else { await loadAll(); setModalUsuario(false); setNovoUsuario({ nome: '', email: '', squad_id: '', senha: '123' }); }
+    else { await loadAll(); setModalUsuario(false); setNovoUsuario({ nome: '', email: '', squad_id: '', senha: '123', tipo: 'tecnico', pode_excluir: false }); }
     setSaving(false);
   };
 
@@ -93,8 +105,13 @@ export default function AdminPage() {
     await supabase.from('usuarios').update({ ativo: !u.ativo }).eq('id', u.id); await loadAll();
   };
 
-  const toggleMaster = async (u) => {
-    await supabase.from('usuarios').update({ master: !u.master }).eq('id', u.id); await loadAll();
+  const togglePodeExcluir = async (u) => {
+    await supabase.from('usuarios').update({ pode_excluir: !u.pode_excluir }).eq('id', u.id); await loadAll();
+  };
+
+  const changeTipo = async (u, novoTipo) => {
+    const master = novoTipo === 'master';
+    await supabase.from('usuarios').update({ tipo: novoTipo, master }).eq('id', u.id); await loadAll();
   };
 
   const handleDeleteEmpresa = async (id) => {
@@ -109,6 +126,9 @@ export default function AdminPage() {
     if (!confirm('Apagar usuário?')) return;
     await supabase.from('usuarios').delete().eq('id', id); await loadAll();
   };
+
+  const tipoColor = { master: '#f59e0b', operador: '#a855f7', tecnico: '#3b82f6' };
+  const tipoBg = { master: '#3d1f02', operador: '#2e1065', tecnico: '#1e3a5f' };
 
   if (!autenticado) {
     return (
@@ -145,8 +165,9 @@ export default function AdminPage() {
         {[
           { val: empresas.length, label: 'empresas', color: '#3b82f6' },
           { val: squads.length, label: 'squads', color: '#22c55e' },
-          { val: usuarios.length, label: 'usuários', color: '#f59e0b' },
-          { val: usuarios.filter(u => u.master).length, label: 'masters', color: '#a855f7' },
+          { val: usuarios.filter(u => u.tipo === 'master').length, label: 'masters', color: '#f59e0b' },
+          { val: usuarios.filter(u => u.tipo === 'operador').length, label: 'operadores', color: '#a855f7' },
+          { val: usuarios.filter(u => u.tipo === 'tecnico').length, label: 'técnicos', color: '#3b82f6' },
         ].map(s => (
           <div key={s.label} className={styles.stat}>
             <div className={styles.statVal} style={{ color: s.color }}>{s.val}</div>
@@ -215,38 +236,53 @@ export default function AdminPage() {
               <div className={styles.tableTitle}>// usuários</div>
               <button className={styles.btnAdd} onClick={() => setModalUsuario(true)}>+ novo usuário</button>
             </div>
-            <div className={styles.table}>
-              <div className={styles.thead} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.6fr 0.6fr 1.2fr 0.7fr' }}>
-                <span>nome</span><span>e-mail</span><span>squad</span><span>status</span><span>master</span><span>senha</span><span>ações</span>
-              </div>
-              {loading ? <div className={styles.empty}>carregando...</div> : usuarios.map(u => (
-                <div key={u.id} className={styles.trow} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.6fr 0.6fr 1.2fr 0.7fr' }}>
-                  <span className={styles.rowName}>{u.nome}</span>
-                  <span className={styles.mono}>{u.email}</span>
-                  <span>{u.squad?.nome}</span>
-                  <span>
-                    <button className={u.ativo ? styles.badgeOn : styles.badgeOff} onClick={() => toggleAtivo(u)}>
-                      {u.ativo ? 'ativo' : 'inativo'}
-                    </button>
-                  </span>
-                  <span>
-                    <button className={u.master ? styles.badgeMaster : styles.badgeNoMaster} onClick={() => toggleMaster(u)}>
-                      {u.master ? '★' : '☆'}
-                    </button>
-                  </span>
-                  <span className={styles.senhaRow}>
-                    <button className={styles.btnSenha} onClick={() => { setModalSenha(u); setNovaSenha(''); }}>editar</button>
-                    <button className={styles.btnReset} onClick={() => handleResetSenha(u)}>↺ 123</button>
-                  </span>
-                  <span><button className={styles.btnDel} onClick={() => handleDeleteUsuario(u.id)}>apagar</button></span>
+            <div className={styles.tableScroll}>
+              <div className={styles.table} style={{ minWidth: 900 }}>
+                <div className={styles.thead} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.8fr 1fr 0.7fr 1.2fr 0.7fr 0.8fr' }}>
+                  <span>nome</span><span>e-mail</span><span>squad</span><span>tipo</span><span>status</span><span>excluir</span><span>senha</span><span>cadastro</span><span>ações</span>
                 </div>
-              ))}
-              {!loading && usuarios.length === 0 && <div className={styles.empty}>// nenhum usuário</div>}
+                {loading ? <div className={styles.empty}>carregando...</div> : usuarios.map(u => (
+                  <div key={u.id} className={styles.trow} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.8fr 1fr 0.7fr 1.2fr 0.7fr 0.8fr' }}>
+                    <span className={styles.rowName}>{u.nome}</span>
+                    <span className={styles.mono}>{u.email}</span>
+                    <span className={styles.small}>{u.squad?.nome}</span>
+                    <span>
+                      <select className={styles.selectTipo}
+                        value={u.tipo || 'tecnico'}
+                        onChange={e => changeTipo(u, e.target.value)}
+                        style={{ color: tipoColor[u.tipo || 'tecnico'], borderColor: tipoColor[u.tipo || 'tecnico'] + '44' }}>
+                        <option value="master">master</option>
+                        <option value="operador">operador</option>
+                        <option value="tecnico">técnico</option>
+                      </select>
+                    </span>
+                    <span>
+                      <button className={u.ativo ? styles.badgeOn : styles.badgeOff} onClick={() => toggleAtivo(u)}>
+                        {u.ativo ? 'ativo' : 'inativo'}
+                      </button>
+                    </span>
+                    <span>
+                      <button className={u.pode_excluir ? styles.badgeExcOn : styles.badgeExcOff} onClick={() => togglePodeExcluir(u)}
+                        title="Permite excluir cards">
+                        {u.pode_excluir ? '✓' : '✗'}
+                      </button>
+                    </span>
+                    <span className={styles.senhaRow}>
+                      <button className={styles.btnSenha} onClick={() => { setModalSenha(u); setNovaSenha(''); }}>editar</button>
+                      <button className={styles.btnReset} onClick={() => handleResetSenha(u)}>↺ 123</button>
+                    </span>
+                    <span className={styles.small}>{fmtDate(u.created_at)}</span>
+                    <span><button className={styles.btnDel} onClick={() => handleDeleteUsuario(u.id)}>apagar</button></span>
+                  </div>
+                ))}
+                {!loading && usuarios.length === 0 && <div className={styles.empty}>// nenhum usuário</div>}
+              </div>
             </div>
           </div>
         )}
       </div>
 
+      {/* MODAIS */}
       {modalEmpresa && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalEmpresa(false); }}>
           <div className={styles.modal}>
@@ -300,8 +336,19 @@ export default function AdminPage() {
               <option value="">selecione...</option>
               {squads.map(s => <option key={s.id} value={s.id}>{s.empresa?.nome} — {s.nome}</option>)}
             </select>
+            <label className={styles.label}>tipo de usuário</label>
+            <select className={styles.select} value={novoUsuario.tipo} onChange={e => setNovoUsuario(p => ({ ...p, tipo: e.target.value }))}>
+              <option value="tecnico">técnico — vê só sua squad</option>
+              <option value="operador">operador — vê todas as squads</option>
+              <option value="master">master — acesso total + dashboard</option>
+            </select>
             <label className={styles.label}>senha inicial</label>
             <input className={styles.input} type="text" placeholder="123" value={novoUsuario.senha} onChange={e => setNovoUsuario(p => ({ ...p, senha: e.target.value }))} />
+            <div className={styles.checkRow}>
+              <input type="checkbox" id="podeExcluir" checked={novoUsuario.pode_excluir}
+                onChange={e => setNovoUsuario(p => ({ ...p, pode_excluir: e.target.checked }))} />
+              <label htmlFor="podeExcluir" className={styles.checkLabel}>permite excluir cards</label>
+            </div>
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setModalUsuario(false)}>cancelar</button>
               <button className={styles.btnPrimary} onClick={handleNovoUsuario} disabled={saving}>{saving ? '...' : '> criar'}</button>

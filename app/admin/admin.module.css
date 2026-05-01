@@ -25,46 +25,45 @@
 .content { padding: 20px; }
 .tableHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .tableTitle { font-size: 12px; font-weight: 600; color: var(--blue); }
+.tableScroll { overflow-x: auto; }
 
 .table { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
 .thead { display: grid; padding: 8px 14px; background: var(--bg3); border-bottom: 1px solid var(--border); font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; }
 .trow { display: grid; padding: 10px 14px; border-bottom: 1px solid var(--border); align-items: center; font-size: 12px; color: var(--text); transition: background .1s; }
 .trow:last-child { border-bottom: none; }
 .trow:hover { background: var(--bg3); }
-
 .rowName { font-weight: 500; }
 .mono { font-size: 11px; color: var(--text2); }
+.small { font-size: 11px; color: var(--text2); }
+.empty { padding: 20px; text-align: center; color: var(--text3); font-size: 12px; }
 
 .planBadge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
 .p_free { background: var(--gray-dim); color: var(--gray); }
 .p_pro { background: var(--blue-dim); color: var(--blue); }
 .p_enterprise { background: var(--green-dim); color: var(--green); }
 
+.selectTipo { font-size: 10px; font-weight: 600; padding: 3px 7px; border-radius: 4px; background: var(--bg3); font-family: var(--font); cursor: pointer; border: 1px solid; }
+.selectTipo:focus { outline: none; }
+
 .badgeOn { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: var(--green-dim); color: var(--green); border: none; cursor: pointer; font-family: var(--font); }
 .badgeOff { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: var(--red-dim); color: var(--red); border: none; cursor: pointer; font-family: var(--font); }
-.badgeMaster { font-size: 13px; padding: 2px 8px; border-radius: 4px; background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); cursor: pointer; font-family: var(--font); }
-.badgeMaster:hover { opacity: .8; }
-.badgeNoMaster { font-size: 13px; padding: 2px 8px; border-radius: 4px; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); cursor: pointer; font-family: var(--font); }
-.badgeNoMaster:hover { border-color: var(--amber); color: var(--amber); }
+.badgeExcOn { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: var(--green-dim); color: var(--green); border: none; cursor: pointer; font-family: var(--font); }
+.badgeExcOff { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); cursor: pointer; font-family: var(--font); }
+.badgeExcOff:hover { border-color: var(--green); color: var(--green); }
 
 .senhaRow { display: flex; gap: 4px; }
 .btnSenha { font-size: 10px; padding: 3px 8px; background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue-dim); border-radius: 4px; cursor: pointer; font-family: var(--font); }
 .btnSenha:hover { border-color: var(--blue); }
 .btnReset { font-size: 10px; padding: 3px 7px; background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-dim); border-radius: 4px; cursor: pointer; font-family: var(--font); }
 .btnReset:hover { border-color: var(--amber); }
-
 .btnDel { font-size: 10px; padding: 3px 8px; background: none; border: 1px solid var(--border2); border-radius: 4px; color: var(--red); cursor: pointer; font-family: var(--font); }
 .btnDel:hover { background: var(--red-dim); border-color: var(--red); }
 
-.empty { padding: 20px; text-align: center; color: var(--text3); font-size: 12px; }
-
 .btnAdd { font-size: 12px; font-weight: 600; padding: 7px 14px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: var(--font); }
 .btnAdd:hover { opacity: .85; }
-
 .btnSmall { font-size: 11px; padding: 5px 11px; border: 1px solid var(--border2); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; font-family: var(--font); }
 .btnDanger { font-size: 11px; padding: 5px 11px; border: 1px solid var(--border2); border-radius: var(--radius); background: none; color: var(--red); cursor: pointer; font-family: var(--font); }
 .btnDanger:hover { background: var(--red-dim); border-color: var(--red); }
-
 .btnPrimary { font-size: 13px; font-weight: 600; padding: 9px 18px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); cursor: pointer; font-family: var(--font); }
 .btnPrimary:hover:not(:disabled) { opacity: .85; }
 .btnPrimary:disabled { opacity: .4; cursor: not-allowed; }
@@ -73,7 +72,7 @@
 .btnCancel { font-size: 12px; padding: 7px 14px; border: 1px solid var(--border2); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; font-family: var(--font); }
 
 .modalBg { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 22px; width: 100%; max-width: 380px; }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 22px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
 .modalTitle { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 14px; }
 .modalFooter { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
 
@@ -81,6 +80,9 @@
 .label:first-of-type { margin-top: 0; }
 .input, .select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; color: var(--text); background: var(--bg3); font-family: var(--font); transition: border-color .15s; }
 .input:focus, .select:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px var(--blue-glow); }
+
+.checkRow { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.checkLabel { font-size: 12px; color: var(--text2); cursor: pointer; }
 
 .senhaInfo { font-size: 12px; color: var(--text2); background: var(--bg3); border-radius: var(--radius); padding: 8px 10px; margin-bottom: 4px; }
 .senhaInfo span { color: var(--text); font-weight: 500; }
