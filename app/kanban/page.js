@@ -16,26 +16,20 @@ const COLS = [
 ];
 
 const MESES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-
-const EMPTY = { titulo: '', status: 'pendente', prioridade: 'med', responsavel_id: '', descricao: '', squad_id: '', parceiro_id: '', produto_id: '' };
+const EMPTY = { titulo: '', prioridade: 'med', responsavel_id: '', descricao: '', squad_id: '', parceiro_id: '', produto_id: '' };
 
 function gerarPrefixo() {
   const now = new Date();
-  const dia = String(now.getDate()).padStart(2, '0');
-  const mes = MESES[now.getMonth()];
-  const ano = String(now.getFullYear()).slice(2);
-  return `${dia}${mes}${ano}`;
+  return `${String(now.getDate()).padStart(2,'0')}${MESES[now.getMonth()]}${String(now.getFullYear()).slice(2)}`;
 }
 
 async function proximoNumero(empresaId) {
-  const prefixo = gerarPrefixo();
-  const { data } = await supabase.from('cards')
-    .select('numero').eq('empresa_id', empresaId)
-    .like('numero', `${prefixo}-%`)
-    .order('numero', { ascending: false }).limit(1);
-  if (!data || data.length === 0) return `${prefixo}-0001`;
+  const pref = gerarPrefixo();
+  const { data } = await supabase.from('cards').select('numero').eq('empresa_id', empresaId)
+    .like('numero', `${pref}-%`).order('numero', { ascending: false }).limit(1);
+  if (!data?.length) return `${pref}-0001`;
   const seq = parseInt(data[0].numero.split('-')[1] || '0', 10);
-  return `${prefixo}-${String(seq + 1).padStart(4, '0')}`;
+  return `${pref}-${String(seq + 1).padStart(4, '0')}`;
 }
 
 function prazoStatus(prazo) {
@@ -51,7 +45,7 @@ function fmtDate(d) {
   if (!d) return '';
   return new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
-function fmtDateShort(d) {
+function fmtShort(d) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('pt-BR');
 }
@@ -96,10 +90,10 @@ export default function KanbanPage() {
     initData(sess);
   }, []);
 
-  const isMaster = (s) => (s || session)?.usuario?.tipo === 'master';
-  const isOperador = (s) => (s || session)?.usuario?.tipo === 'operador';
+  const isMaster = (s) => (s||session)?.usuario?.tipo === 'master';
+  const isOperador = (s) => (s||session)?.usuario?.tipo === 'operador';
   const canSeeAll = (s) => isMaster(s) || isOperador(s);
-  const canDelete = (s) => isMaster(s) || (s || session)?.usuario?.pode_excluir;
+  const canDelete = (s) => isMaster(s) || (s||session)?.usuario?.pode_excluir;
 
   const sortSquads = (list) => {
     const sust = list.filter(s => s.nome.toLowerCase().includes('sustenta'));
@@ -109,24 +103,20 @@ export default function KanbanPage() {
 
   const initData = async (sess) => {
     setLoading(true);
+    const empresaId = sess.empresa.id;
     const [squadsRes, parcRes, prodRes] = await Promise.all([
       canSeeAll(sess)
-        ? supabase.from('squads').select('*').eq('empresa_id', sess.empresa.id).order('nome')
+        ? supabase.from('squads').select('*').eq('empresa_id', empresaId).order('nome')
         : Promise.resolve({ data: [sess.squad] }),
-      supabase.from('parceiros').select('*').eq('ativo', true).order('nome'),
-      supabase.from('produtos').select('*').eq('ativo', true).order('nome'),
+      supabase.from('parceiros').select('*').eq('empresa_id', empresaId).eq('ativo', true).order('nome'),
+      supabase.from('produtos').select('*').eq('empresa_id', empresaId).eq('ativo', true).order('nome'),
     ]);
-
     const sorted = sortSquads(squadsRes.data || []);
     setAllSquads(sorted);
     setParceiros(parcRes.data || []);
     setProdutos(prodRes.data || []);
-
     const first = canSeeAll(sess) ? sorted[0] : sess.squad;
-    if (first) {
-      setActiveSquadId(first.id);
-      await loadSquadData(first.id, sess.empresa.id);
-    }
+    if (first) { setActiveSquadId(first.id); await loadSquadData(first.id, empresaId); }
     setLoading(false);
   };
 
@@ -143,9 +133,7 @@ export default function KanbanPage() {
 
   const handleTabChange = async (squadId) => {
     if (squadId === activeSquadId) return;
-    setLoading(true);
-    setActiveSquadId(squadId);
-    setMeusFiltro(false);
+    setLoading(true); setActiveSquadId(squadId); setMeusFiltro(false);
     await loadSquadData(squadId, session.empresa.id);
     setLoading(false);
   };
@@ -209,7 +197,7 @@ export default function KanbanPage() {
     const produto = produtos.find(p => p.id === newCard.produto_id);
     const { data, error } = await supabase.from('cards').insert({
       titulo: newCard.titulo, descricao: newCard.descricao,
-      status: newCard.status, prioridade: newCard.prioridade,
+      status: 'pendente', prioridade: newCard.prioridade,
       numero, squad_id: targetSquad, empresa_id: session.empresa.id,
       responsavel_id: newCard.responsavel_id || session.usuario.id,
       relator_id: session.usuario.id, relator_nome: session.usuario.nome,
@@ -254,7 +242,6 @@ export default function KanbanPage() {
     const oldResp = editCard.responsavel_id;
     const parceiro = parceiros.find(p => p.id === editForm.parceiro_id);
     const produto = produtos.find(p => p.id === editForm.produto_id);
-
     const { data } = await supabase.from('cards').update({
       titulo: editForm.titulo, descricao: editForm.descricao,
       status: editForm.status, prioridade: editForm.prioridade,
@@ -264,7 +251,6 @@ export default function KanbanPage() {
       produto_id: editForm.produto_id || null, produto_nome: produto?.nome || null,
     }).eq('id', editCard.id)
       .select('*, responsavel:responsavel_id(id,nome), parceiro:parceiro_id(nome), produto:produto_id(nome)').single();
-
     if (data) {
       if (oldStatus !== editForm.status) {
         const de = COLS.find(c => c.id === oldStatus)?.label;
@@ -345,7 +331,9 @@ export default function KanbanPage() {
         <div className={styles.headerLeft}>
           <div className={styles.logo}>Kanban<span>Avanti</span><span className={styles.cursor}>_</span></div>
           <div className={styles.breadcrumb}>
-            {sess.empresa?.nome} / <span className={styles.breadUser}>{sess.usuario?.nome}</span>
+            <span>{sess.empresa?.nome}</span>
+            <span className={styles.breadSep}>/</span>
+            <span className={styles.breadUser}>{sess.usuario?.nome}</span>
             <span className={styles.tipoBadge} style={{ color: tipoColor[sess.usuario?.tipo], borderColor: tipoColor[sess.usuario?.tipo]+'44', background: tipoColor[sess.usuario?.tipo]+'18' }}>
               {sess.usuario?.tipo}
             </span>
@@ -355,7 +343,7 @@ export default function KanbanPage() {
           <div className={styles.searchWrap} ref={searchRef}>
             <button className={`${styles.searchBtn} ${showSearch ? styles.searchBtnActive : ''}`}
               onClick={() => { setShowSearch(v => !v); setSearchQuery(''); setSearchResults([]); }}>
-              ⌕ buscar
+              ⌕
             </button>
             {showSearch && (
               <div className={styles.searchDropdown}>
@@ -375,7 +363,6 @@ export default function KanbanPage() {
                         <span style={{ color: col?.color }}>{col?.label}</span>
                         {card.parceiro_nome && <span>{card.parceiro_nome}</span>}
                         {card.produto_nome && <span>{card.produto_nome}</span>}
-                        {card.squad?.nome && <span>{card.squad.nome}</span>}
                       </div>
                     </div>
                   );
@@ -383,9 +370,9 @@ export default function KanbanPage() {
               </div>
             )}
           </div>
-          {isMaster() && <button className={styles.dashBtn} onClick={() => router.push('/dashboard')}>◎ dashboard</button>}
-          <button className={`${styles.filterBtn} ${meusFiltro ? styles.filterActive : ''}`} onClick={() => setMeusFiltro(v => !v)}>meus cards</button>
-          <button className={styles.addBtn} onClick={() => { setNewCard({ ...EMPTY, squad_id: defaultSquadId() }); setShowModal(true); }}>+ novo card</button>
+          {isMaster() && <button className={styles.dashBtn} onClick={() => router.push('/dashboard')}>◎</button>}
+          <button className={`${styles.filterBtn} ${meusFiltro ? styles.filterActive : ''}`} onClick={() => setMeusFiltro(v => !v)}>meus</button>
+          <button className={styles.addBtn} onClick={() => { setNewCard({ ...EMPTY, squad_id: defaultSquadId() }); setShowModal(true); }}>+</button>
           <button className={styles.logoutBtn} onClick={handleLogout}>sair</button>
         </div>
       </header>
@@ -408,7 +395,7 @@ export default function KanbanPage() {
         ))}
       </div>
 
-      {loading ? <div className={styles.loading}>// carregando cards...</div> : (
+      {loading ? <div className={styles.loading}>// carregando...</div> : (
         <div className={styles.board}>
           {COLS.map(col => {
             const colCards = vis.filter(c => c.status === col.id);
@@ -446,8 +433,8 @@ export default function KanbanPage() {
                           <span className={styles.prio} style={{ color: prioColor[card.prioridade], background: prioBg[card.prioridade] }}>{prioLabel[card.prioridade]}</span>
                         </div>
                         <div className={styles.cardMeta}>
-                          <span>relator: {card.relator_nome || '—'}</span>
-                          <span>{fmtDateShort(card.created_at)}</span>
+                          <span>↳ {card.relator_nome || '—'}</span>
+                          <span>{fmtShort(card.created_at)}</span>
                         </div>
                       </div>
                     );
@@ -459,34 +446,37 @@ export default function KanbanPage() {
         </div>
       )}
 
-      {/* MODAL CRIAR — sem prazo */}
+      {/* MODAL CRIAR — ordem: relator, titulo, descricao, parceiro, produto, squad, prioridade */}
       {showModal && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// novo card</h3>
+
             <div className={styles.relatorInfo}>✦ relator: {sess.usuario?.nome}</div>
-
-            <label className={styles.label}>parceiro / marca *</label>
-            <select className={styles.select} value={newCard.parceiro_id}
-              onChange={e => setNewCard(p => ({ ...p, parceiro_id: e.target.value }))}>
-              <option value="">selecione o parceiro...</option>
-              {parceiros.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
-
-            <label className={styles.label}>produto *</label>
-            <select className={styles.select} value={newCard.produto_id}
-              onChange={e => setNewCard(p => ({ ...p, produto_id: e.target.value }))}>
-              <option value="">selecione o produto...</option>
-              {produtos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-            </select>
 
             <label className={styles.label}>título *</label>
             <input className={styles.input} placeholder="descreva a tarefa..." value={newCard.titulo}
               onChange={e => setNewCard(p => ({ ...p, titulo: e.target.value }))} autoFocus />
 
             <label className={styles.label}>descrição</label>
-            <textarea className={styles.textarea} value={newCard.descricao}
+            <textarea className={styles.textarea} placeholder="detalhes..." value={newCard.descricao}
               onChange={e => setNewCard(p => ({ ...p, descricao: e.target.value }))} />
+
+            <label className={styles.label}>parceiro / marca *</label>
+            <select className={styles.select} value={newCard.parceiro_id}
+              onChange={e => setNewCard(p => ({ ...p, parceiro_id: e.target.value }))}>
+              <option value="">selecione...</option>
+              {parceiros.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+            {parceiros.length === 0 && <div className={styles.emptyHint}>// nenhum parceiro cadastrado para esta empresa</div>}
+
+            <label className={styles.label}>produto *</label>
+            <select className={styles.select} value={newCard.produto_id}
+              onChange={e => setNewCard(p => ({ ...p, produto_id: e.target.value }))}>
+              <option value="">selecione...</option>
+              {produtos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+            {produtos.length === 0 && <div className={styles.emptyHint}>// nenhum produto cadastrado para esta empresa</div>}
 
             {canSeeAll() && allSquads.length > 1 && (<>
               <label className={styles.label}>squad</label>
@@ -496,16 +486,12 @@ export default function KanbanPage() {
               </select>
             </>)}
 
-            <label className={styles.label}>status</label>
-            <select className={styles.select} value={newCard.status}
-              onChange={e => setNewCard(p => ({ ...p, status: e.target.value }))}>
-              {COLS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-
             <label className={styles.label}>prioridade</label>
             <select className={styles.select} value={newCard.prioridade}
               onChange={e => setNewCard(p => ({ ...p, prioridade: e.target.value }))}>
-              <option value="high">alta</option><option value="med">média</option><option value="low">baixa</option>
+              <option value="high">alta</option>
+              <option value="med">média</option>
+              <option value="low">baixa</option>
             </select>
 
             <label className={styles.label}>responsável</label>
@@ -526,21 +512,17 @@ export default function KanbanPage() {
         </div>
       )}
 
-      {/* MODAL EDITAR — com prazo e todos os campos */}
+      {/* MODAL EDITAR */}
       {editCard && (
         <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setEditCard(null); }}>
           <div className={styles.modalLarge}>
             <div className={styles.modalHeader}>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 {editCard.numero && <div className={styles.cardNumModal}>{editCard.numero}</div>}
-                <h3 className={styles.modalTitle}>{editCard.titulo}</h3>
-                <div className={styles.relatorBadge}>
-                  ✦ relator: {editCard.relator_nome || '—'} · criado {fmtDate(editCard.created_at)}
-                </div>
+                <h3 className={styles.modalTitle} style={{ marginBottom: 2 }}>{editCard.titulo}</h3>
+                <div className={styles.relatorBadge}>✦ {editCard.relator_nome || '—'} · {fmtDate(editCard.created_at)}</div>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
-                {canDelete() && <button className={styles.btnDelete} onClick={handleDelete}>apagar</button>}
-              </div>
+              {canDelete() && <button className={styles.btnDelete} onClick={handleDelete}>apagar</button>}
             </div>
 
             <div className={styles.modalBody}>
@@ -574,7 +556,7 @@ export default function KanbanPage() {
                 <label className={styles.label}>migrar para squad</label>
                 <select className={styles.select} value={editForm.squad_id}
                   onChange={e => setEditForm(p => ({ ...p, squad_id: e.target.value }))}>
-                  {allSquads.map(s => <option key={s.id} value={s.id}>{s.nome}{s.id===activeSquadId?' ← atual':''}</option>)}
+                  {allSquads.map(s => <option key={s.id} value={s.id}>{s.nome}{s.id===activeSquadId?' ←':''}</option>)}
                 </select>
 
                 <label className={styles.label}>status</label>
@@ -584,14 +566,16 @@ export default function KanbanPage() {
                 </select>
 
                 <div className={styles.row2}>
-                  <div style={{ flex:1 }}>
+                  <div style={{ flex: 1 }}>
                     <label className={styles.label}>prioridade</label>
                     <select className={styles.select} value={editForm.prioridade}
                       onChange={e => setEditForm(p => ({ ...p, prioridade: e.target.value }))}>
-                      <option value="high">alta</option><option value="med">média</option><option value="low">baixa</option>
+                      <option value="high">alta</option>
+                      <option value="med">média</option>
+                      <option value="low">baixa</option>
                     </select>
                   </div>
-                  <div style={{ flex:1 }}>
+                  <div style={{ flex: 1 }}>
                     <label className={styles.label}>responsável</label>
                     <select className={styles.select} value={editForm.responsavel_id}
                       onChange={e => setEditForm(p => ({ ...p, responsavel_id: e.target.value }))}>
@@ -613,7 +597,7 @@ export default function KanbanPage() {
                 {activeTab === 'comentarios' && (<>
                   <div className={styles.comentList}>
                     {loadingActivity ? <div className={styles.comentEmpty}>carregando...</div> :
-                      comentarios.length === 0 ? <div className={styles.comentEmpty}>// sem comentários ainda</div> :
+                      comentarios.length === 0 ? <div className={styles.comentEmpty}>// sem comentários</div> :
                       comentarios.map(c => (
                         <div key={c.id} className={styles.comment}>
                           <div className={styles.commentHeader}>
@@ -622,7 +606,8 @@ export default function KanbanPage() {
                           </div>
                           {editingComentId === c.id ? (
                             <div>
-                              <textarea className={styles.textareaSmall} value={editingComentText} onChange={e => setEditingComentText(e.target.value)} />
+                              <textarea className={styles.textareaSmall} value={editingComentText}
+                                onChange={e => setEditingComentText(e.target.value)} />
                               <div style={{ display:'flex', gap:6, marginTop:4 }}>
                                 <button className={styles.btnCommentAction} onClick={() => handleEditComment(c)}>salvar</button>
                                 <button className={styles.btnCommentCancel} onClick={() => setEditingComentId(null)}>cancelar</button>
@@ -665,7 +650,7 @@ export default function KanbanPage() {
 
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setEditCard(null)}>cancelar</button>
-              <button className={styles.btnSave} onClick={handleSaveEdit} disabled={saving || !editForm.titulo.trim()}>
+              <button className={styles.btnSave} onClick={handleSaveEdit} disabled={saving || !editForm.titulo?.trim()}>
                 {saving ? 'salvando...' : '> salvar'}
               </button>
             </div>

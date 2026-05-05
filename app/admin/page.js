@@ -19,6 +19,10 @@ export default function AdminPage() {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Filtro por empresa nos tabs parceiros/produtos
+  const [filtroEmpresaParc, setFiltroEmpresaParc] = useState('');
+  const [filtroEmpresaProd, setFiltroEmpresaProd] = useState('');
+
   const [modalEmpresa, setModalEmpresa] = useState(false);
   const [modalSquad, setModalSquad] = useState(false);
   const [modalUsuario, setModalUsuario] = useState(false);
@@ -30,8 +34,8 @@ export default function AdminPage() {
   const [novaSquad, setNovaSquad] = useState({ nome: '', empresa_id: '' });
   const [novoUsuario, setNovoUsuario] = useState({ nome: '', email: '', squad_id: '', senha: '123', tipo: 'tecnico', pode_excluir: false });
   const [novaSenha, setNovaSenha] = useState('');
-  const [novoParceiro, setNovoParceiro] = useState('');
-  const [novoProduto, setNovoProduto] = useState('');
+  const [novoParceiro, setNovoParceiro] = useState({ nome: '', empresa_id: '' });
+  const [novoProduto, setNovoProduto] = useState({ nome: '', empresa_id: '' });
   const [saving, setSaving] = useState(false);
   const [senha, setSenha] = useState('');
   const [autenticado, setAutenticado] = useState(false);
@@ -49,8 +53,8 @@ export default function AdminPage() {
       supabase.from('empresas').select('*').order('nome'),
       supabase.from('squads').select('*, empresa:empresa_id(nome)').order('nome'),
       supabase.from('usuarios').select('*, squad:squad_id(nome), empresa:empresa_id(nome)').order('nome'),
-      supabase.from('parceiros').select('*').order('nome'),
-      supabase.from('produtos').select('*').order('nome'),
+      supabase.from('parceiros').select('*, empresa:empresa_id(nome)').order('nome'),
+      supabase.from('produtos').select('*, empresa:empresa_id(nome)').order('nome'),
     ]);
     setEmpresas(e || []); setSquads(s || []); setUsuarios(u || []);
     setParceiros(par || []); setProdutos(prod || []);
@@ -106,66 +110,40 @@ export default function AdminPage() {
   };
 
   const handleNovoParceiro = async () => {
-    if (!novoParceiro.trim()) return;
+    if (!novoParceiro.nome.trim() || !novoParceiro.empresa_id) return;
     setSaving(true);
-    const { error } = await supabase.from('parceiros').insert({ nome: novoParceiro.trim() });
+    const { error } = await supabase.from('parceiros').insert({ nome: novoParceiro.nome.trim(), empresa_id: novoParceiro.empresa_id });
     if (error) alert('Erro: ' + error.message);
-    else { await loadAll(); setModalParceiro(false); setNovoParceiro(''); }
+    else { await loadAll(); setModalParceiro(false); setNovoParceiro({ nome: '', empresa_id: '' }); }
     setSaving(false);
   };
 
   const handleNovoProduto = async () => {
-    if (!novoProduto.trim()) return;
+    if (!novoProduto.nome.trim() || !novoProduto.empresa_id) return;
     setSaving(true);
-    const { error } = await supabase.from('produtos').insert({ nome: novoProduto.trim() });
+    const { error } = await supabase.from('produtos').insert({ nome: novoProduto.nome.trim(), empresa_id: novoProduto.empresa_id });
     if (error) alert('Erro: ' + error.message);
-    else { await loadAll(); setModalProduto(false); setNovoProduto(''); }
+    else { await loadAll(); setModalProduto(false); setNovoProduto({ nome: '', empresa_id: '' }); }
     setSaving(false);
   };
 
-  const toggleParceiroAtivo = async (p) => {
-    await supabase.from('parceiros').update({ ativo: !p.ativo }).eq('id', p.id); await loadAll();
-  };
-  const toggleProdutoAtivo = async (p) => {
-    await supabase.from('produtos').update({ ativo: !p.ativo }).eq('id', p.id); await loadAll();
-  };
-  const handleDeleteParceiro = async (id) => {
-    if (!confirm('Apagar parceiro?')) return;
-    await supabase.from('parceiros').delete().eq('id', id); await loadAll();
-  };
-  const handleDeleteProduto = async (id) => {
-    if (!confirm('Apagar produto?')) return;
-    await supabase.from('produtos').delete().eq('id', id); await loadAll();
-  };
-  const handleResetSenha = async (u) => {
-    if (!confirm(`Resetar senha de "${u.nome}" para 123?`)) return;
-    await supabase.from('usuarios').update({ senha: '123' }).eq('id', u.id); await loadAll();
-  };
-  const toggleAtivo = async (u) => {
-    await supabase.from('usuarios').update({ ativo: !u.ativo }).eq('id', u.id); await loadAll();
-  };
-  const togglePodeExcluir = async (u) => {
-    await supabase.from('usuarios').update({ pode_excluir: !u.pode_excluir }).eq('id', u.id); await loadAll();
-  };
-  const changeTipo = async (u, novoTipo) => {
-    const master = novoTipo === 'master';
-    await supabase.from('usuarios').update({ tipo: novoTipo, master }).eq('id', u.id); await loadAll();
-  };
-  const handleDeleteEmpresa = async (id) => {
-    if (!confirm('Apagar empresa?')) return;
-    await supabase.from('empresas').delete().eq('id', id); await loadAll();
-  };
-  const handleDeleteSquad = async (id) => {
-    if (!confirm('Apagar squad?')) return;
-    await supabase.from('squads').delete().eq('id', id); await loadAll();
-  };
-  const handleDeleteUsuario = async (id) => {
-    if (!confirm('Apagar usuário?')) return;
-    await supabase.from('usuarios').delete().eq('id', id); await loadAll();
-  };
+  const toggleParceiroAtivo = async (p) => { await supabase.from('parceiros').update({ ativo: !p.ativo }).eq('id', p.id); await loadAll(); };
+  const toggleProdutoAtivo = async (p) => { await supabase.from('produtos').update({ ativo: !p.ativo }).eq('id', p.id); await loadAll(); };
+  const handleDeleteParceiro = async (id) => { if (!confirm('Apagar?')) return; await supabase.from('parceiros').delete().eq('id', id); await loadAll(); };
+  const handleDeleteProduto = async (id) => { if (!confirm('Apagar?')) return; await supabase.from('produtos').delete().eq('id', id); await loadAll(); };
+  const handleResetSenha = async (u) => { if (!confirm(`Resetar senha de "${u.nome}" para 123?`)) return; await supabase.from('usuarios').update({ senha: '123' }).eq('id', u.id); await loadAll(); };
+  const toggleAtivo = async (u) => { await supabase.from('usuarios').update({ ativo: !u.ativo }).eq('id', u.id); await loadAll(); };
+  const togglePodeExcluir = async (u) => { await supabase.from('usuarios').update({ pode_excluir: !u.pode_excluir }).eq('id', u.id); await loadAll(); };
+  const changeTipo = async (u, t) => { await supabase.from('usuarios').update({ tipo: t, master: t==='master' }).eq('id', u.id); await loadAll(); };
+  const handleDeleteEmpresa = async (id) => { if (!confirm('Apagar empresa?')) return; await supabase.from('empresas').delete().eq('id', id); await loadAll(); };
+  const handleDeleteSquad = async (id) => { if (!confirm('Apagar squad?')) return; await supabase.from('squads').delete().eq('id', id); await loadAll(); };
+  const handleDeleteUsuario = async (id) => { if (!confirm('Apagar usuário?')) return; await supabase.from('usuarios').delete().eq('id', id); await loadAll(); };
 
   const tipoColor = { master: '#f59e0b', operador: '#a855f7', tecnico: '#3b82f6' };
   const TABS = ['empresas', 'squads', 'usuarios', 'parceiros', 'produtos'];
+
+  const parceirosFiltrados = filtroEmpresaParc ? parceiros.filter(p => p.empresa_id === filtroEmpresaParc) : parceiros;
+  const produtosFiltrados = filtroEmpresaProd ? produtos.filter(p => p.empresa_id === filtroEmpresaProd) : produtos;
 
   if (!autenticado) {
     return (
@@ -178,7 +156,7 @@ export default function AdminPage() {
             value={senha} onChange={e => setSenha(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus />
           <button className={styles.btnPrimary} onClick={handleLogin}>&gt; entrar</button>
-          <button className={styles.btnGhost} onClick={() => router.push('/')}>← voltar ao site</button>
+          <button className={styles.btnGhost} onClick={() => router.push('/')}>← voltar</button>
         </div>
       </div>
     );
@@ -192,8 +170,8 @@ export default function AdminPage() {
           <div className={styles.adminBadge}>admin</div>
         </div>
         <div className={styles.headerRight}>
-          <button className={styles.btnSmall} onClick={() => router.push('/dashboard')}>dashboard</button>
-          <button className={styles.btnSmall} onClick={() => router.push('/login')}>ver app</button>
+          <button className={styles.btnSmall} onClick={() => router.push('/dashboard')}>dash</button>
+          <button className={styles.btnSmall} onClick={() => router.push('/login')}>app</button>
           <button className={styles.btnDanger} onClick={() => { sessionStorage.removeItem('ka_admin'); setAutenticado(false); }}>sair</button>
         </div>
       </header>
@@ -202,9 +180,9 @@ export default function AdminPage() {
         {[
           { val: empresas.length, label: 'empresas', color: '#3b82f6' },
           { val: squads.length, label: 'squads', color: '#22c55e' },
-          { val: usuarios.filter(u => u.tipo === 'master').length, label: 'masters', color: '#f59e0b' },
-          { val: usuarios.filter(u => u.tipo === 'operador').length, label: 'operadores', color: '#a855f7' },
-          { val: usuarios.filter(u => u.tipo === 'tecnico').length, label: 'técnicos', color: '#3b82f6' },
+          { val: usuarios.filter(u => u.tipo==='master').length, label: 'masters', color: '#f59e0b' },
+          { val: usuarios.filter(u => u.tipo==='operador').length, label: 'operadores', color: '#a855f7' },
+          { val: usuarios.filter(u => u.tipo==='tecnico').length, label: 'técnicos', color: '#3b82f6' },
           { val: parceiros.filter(p => p.ativo).length, label: 'parceiros', color: '#14b8a6' },
           { val: produtos.filter(p => p.ativo).length, label: 'produtos', color: '#ec4899' },
         ].map(s => (
@@ -217,18 +195,17 @@ export default function AdminPage() {
 
       <div className={styles.tabs}>
         {TABS.map(t => (
-          <button key={t} className={`${styles.tab} ${tab === t ? styles.tabActive : ''}`} onClick={() => setTab(t)}>{t}</button>
+          <button key={t} className={`${styles.tab} ${tab===t?styles.tabActive:''}`} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
 
       <div className={styles.content}>
 
-        {/* EMPRESAS */}
         {tab === 'empresas' && (
           <div>
             <div className={styles.tableHeader}>
               <div className={styles.tableTitle}>// empresas</div>
-              <button className={styles.btnAdd} onClick={() => setModalEmpresa(true)}>+ nova empresa</button>
+              <button className={styles.btnAdd} onClick={() => setModalEmpresa(true)}>+ nova</button>
             </div>
             <div className={styles.table}>
               <div className={styles.thead} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
@@ -239,21 +216,20 @@ export default function AdminPage() {
                   <span className={styles.rowName}>{e.nome}</span>
                   <span className={styles.mono}>{e.slug}</span>
                   <span><span className={`${styles.planBadge} ${styles['p_'+e.plano]}`}>{e.plano}</span></span>
-                  <span>{squads.filter(s => s.empresa_id === e.id).length}</span>
+                  <span>{squads.filter(s => s.empresa_id===e.id).length}</span>
                   <span><button className={styles.btnDel} onClick={() => handleDeleteEmpresa(e.id)}>apagar</button></span>
                 </div>
               ))}
-              {!loading && empresas.length === 0 && <div className={styles.empty}>// nenhuma empresa</div>}
+              {!loading && empresas.length===0 && <div className={styles.empty}>// nenhuma empresa</div>}
             </div>
           </div>
         )}
 
-        {/* SQUADS */}
         {tab === 'squads' && (
           <div>
             <div className={styles.tableHeader}>
               <div className={styles.tableTitle}>// squads</div>
-              <button className={styles.btnAdd} onClick={() => setModalSquad(true)}>+ nova squad</button>
+              <button className={styles.btnAdd} onClick={() => setModalSquad(true)}>+ nova</button>
             </div>
             <div className={styles.table}>
               <div className={styles.thead} style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}>
@@ -263,24 +239,23 @@ export default function AdminPage() {
                 <div key={s.id} className={styles.trow} style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}>
                   <span className={styles.rowName}>{s.nome}</span>
                   <span>{s.empresa?.nome}</span>
-                  <span>{usuarios.filter(u => u.squad_id === s.id).length}</span>
+                  <span>{usuarios.filter(u => u.squad_id===s.id).length}</span>
                   <span><button className={styles.btnDel} onClick={() => handleDeleteSquad(s.id)}>apagar</button></span>
                 </div>
               ))}
-              {!loading && squads.length === 0 && <div className={styles.empty}>// nenhuma squad</div>}
+              {!loading && squads.length===0 && <div className={styles.empty}>// nenhuma squad</div>}
             </div>
           </div>
         )}
 
-        {/* USUÁRIOS */}
         {tab === 'usuarios' && (
           <div>
             <div className={styles.tableHeader}>
               <div className={styles.tableTitle}>// usuários</div>
-              <button className={styles.btnAdd} onClick={() => setModalUsuario(true)}>+ novo usuário</button>
+              <button className={styles.btnAdd} onClick={() => setModalUsuario(true)}>+ novo</button>
             </div>
             <div className={styles.tableScroll}>
-              <div className={styles.table} style={{ minWidth: 900 }}>
+              <div className={styles.table} style={{ minWidth: 860 }}>
                 <div className={styles.thead} style={{ gridTemplateColumns: '1.5fr 1.5fr 1fr 0.8fr 1fr 0.6fr 1.2fr 0.8fr 0.8fr' }}>
                   <span>nome</span><span>e-mail</span><span>squad</span><span>tipo</span><span>status</span><span>excluir</span><span>senha</span><span>cadastro</span><span>ações</span>
                 </div>
@@ -290,87 +265,99 @@ export default function AdminPage() {
                     <span className={styles.mono}>{u.email}</span>
                     <span className={styles.small}>{u.squad?.nome}</span>
                     <span>
-                      <select className={styles.selectTipo} value={u.tipo || 'tecnico'}
+                      <select className={styles.selectTipo} value={u.tipo||'tecnico'}
                         onChange={e => changeTipo(u, e.target.value)}
-                        style={{ color: tipoColor[u.tipo || 'tecnico'], borderColor: tipoColor[u.tipo || 'tecnico']+'44' }}>
+                        style={{ color: tipoColor[u.tipo||'tecnico'], borderColor: tipoColor[u.tipo||'tecnico']+'44' }}>
                         <option value="master">master</option>
                         <option value="operador">operador</option>
                         <option value="tecnico">técnico</option>
                       </select>
                     </span>
-                    <span><button className={u.ativo ? styles.badgeOn : styles.badgeOff} onClick={() => toggleAtivo(u)}>{u.ativo ? 'ativo' : 'inativo'}</button></span>
-                    <span><button className={u.pode_excluir ? styles.badgeExcOn : styles.badgeExcOff} onClick={() => togglePodeExcluir(u)}>{u.pode_excluir ? '✓' : '✗'}</button></span>
+                    <span><button className={u.ativo?styles.badgeOn:styles.badgeOff} onClick={() => toggleAtivo(u)}>{u.ativo?'ativo':'inativo'}</button></span>
+                    <span><button className={u.pode_excluir?styles.badgeExcOn:styles.badgeExcOff} onClick={() => togglePodeExcluir(u)}>{u.pode_excluir?'✓':'✗'}</button></span>
                     <span className={styles.senhaRow}>
                       <button className={styles.btnSenha} onClick={() => { setModalSenha(u); setNovaSenha(''); }}>editar</button>
-                      <button className={styles.btnReset} onClick={() => handleResetSenha(u)}>↺ 123</button>
+                      <button className={styles.btnReset} onClick={() => handleResetSenha(u)}>↺</button>
                     </span>
                     <span className={styles.small}>{fmtDate(u.created_at)}</span>
                     <span><button className={styles.btnDel} onClick={() => handleDeleteUsuario(u.id)}>apagar</button></span>
                   </div>
                 ))}
-                {!loading && usuarios.length === 0 && <div className={styles.empty}>// nenhum usuário</div>}
+                {!loading && usuarios.length===0 && <div className={styles.empty}>// nenhum usuário</div>}
               </div>
             </div>
           </div>
         )}
 
-        {/* PARCEIROS */}
         {tab === 'parceiros' && (
           <div>
             <div className={styles.tableHeader}>
-              <div className={styles.tableTitle}>// parceiros / marcas</div>
-              <button className={styles.btnAdd} onClick={() => setModalParceiro(true)}>+ novo parceiro</button>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <div className={styles.tableTitle}>// parceiros / marcas</div>
+                <select className={styles.filterSelect} value={filtroEmpresaParc} onChange={e => setFiltroEmpresaParc(e.target.value)}>
+                  <option value="">todas as empresas</option>
+                  {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                </select>
+              </div>
+              <button className={styles.btnAdd} onClick={() => setModalParceiro(true)}>+ novo</button>
             </div>
             <div className={styles.table}>
-              <div className={styles.thead} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
-                <span>nome</span><span>status</span><span>cadastro</span><span>ações</span>
+              <div className={styles.thead} style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}>
+                <span>nome</span><span>empresa</span><span>status</span><span>cadastro</span><span>ações</span>
               </div>
-              {loading ? <div className={styles.empty}>carregando...</div> : parceiros.map(p => (
-                <div key={p.id} className={styles.trow} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+              {loading ? <div className={styles.empty}>carregando...</div> : parceirosFiltrados.map(p => (
+                <div key={p.id} className={styles.trow} style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}>
                   <span className={styles.rowName}>{p.nome}</span>
-                  <span><button className={p.ativo ? styles.badgeOn : styles.badgeOff} onClick={() => toggleParceiroAtivo(p)}>{p.ativo ? 'ativo' : 'inativo'}</button></span>
+                  <span className={styles.small}>{p.empresa?.nome || '—'}</span>
+                  <span><button className={p.ativo?styles.badgeOn:styles.badgeOff} onClick={() => toggleParceiroAtivo(p)}>{p.ativo?'ativo':'inativo'}</button></span>
                   <span className={styles.small}>{fmtDate(p.created_at)}</span>
                   <span><button className={styles.btnDel} onClick={() => handleDeleteParceiro(p.id)}>apagar</button></span>
                 </div>
               ))}
-              {!loading && parceiros.length === 0 && <div className={styles.empty}>// nenhum parceiro</div>}
+              {!loading && parceirosFiltrados.length===0 && <div className={styles.empty}>// nenhum parceiro</div>}
             </div>
           </div>
         )}
 
-        {/* PRODUTOS */}
         {tab === 'produtos' && (
           <div>
             <div className={styles.tableHeader}>
-              <div className={styles.tableTitle}>// produtos</div>
-              <button className={styles.btnAdd} onClick={() => setModalProduto(true)}>+ novo produto</button>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <div className={styles.tableTitle}>// produtos</div>
+                <select className={styles.filterSelect} value={filtroEmpresaProd} onChange={e => setFiltroEmpresaProd(e.target.value)}>
+                  <option value="">todas as empresas</option>
+                  {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                </select>
+              </div>
+              <button className={styles.btnAdd} onClick={() => setModalProduto(true)}>+ novo</button>
             </div>
             <div className={styles.table}>
-              <div className={styles.thead} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
-                <span>nome</span><span>status</span><span>cadastro</span><span>ações</span>
+              <div className={styles.thead} style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}>
+                <span>nome</span><span>empresa</span><span>status</span><span>cadastro</span><span>ações</span>
               </div>
-              {loading ? <div className={styles.empty}>carregando...</div> : produtos.map(p => (
-                <div key={p.id} className={styles.trow} style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+              {loading ? <div className={styles.empty}>carregando...</div> : produtosFiltrados.map(p => (
+                <div key={p.id} className={styles.trow} style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}>
                   <span className={styles.rowName}>{p.nome}</span>
-                  <span><button className={p.ativo ? styles.badgeOn : styles.badgeOff} onClick={() => toggleProdutoAtivo(p)}>{p.ativo ? 'ativo' : 'inativo'}</button></span>
+                  <span className={styles.small}>{p.empresa?.nome || '—'}</span>
+                  <span><button className={p.ativo?styles.badgeOn:styles.badgeOff} onClick={() => toggleProdutoAtivo(p)}>{p.ativo?'ativo':'inativo'}</button></span>
                   <span className={styles.small}>{fmtDate(p.created_at)}</span>
                   <span><button className={styles.btnDel} onClick={() => handleDeleteProduto(p.id)}>apagar</button></span>
                 </div>
               ))}
-              {!loading && produtos.length === 0 && <div className={styles.empty}>// nenhum produto</div>}
+              {!loading && produtosFiltrados.length===0 && <div className={styles.empty}>// nenhum produto</div>}
             </div>
           </div>
         )}
       </div>
 
-      {/* MODAL EMPRESA */}
+      {/* MODAIS */}
       {modalEmpresa && (
-        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalEmpresa(false); }}>
+        <div className={styles.modalBg} onClick={e => { if (e.target===e.currentTarget) setModalEmpresa(false); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// nova empresa</h3>
             <label className={styles.label}>nome</label>
             <input className={styles.input} placeholder="Ex: Minha Empresa" value={novaEmpresa.nome}
-              onChange={e => { const nome = e.target.value; const slug = nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''); setNovaEmpresa(p=>({...p,nome,slug})); }} />
+              onChange={e => { const nome=e.target.value; const slug=nome.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,''); setNovaEmpresa(p=>({...p,nome,slug})); }} />
             <label className={styles.label}>slug</label>
             <input className={styles.input} value={novaEmpresa.slug} onChange={e => setNovaEmpresa(p=>({...p,slug:e.target.value}))} />
             <label className={styles.label}>plano</label>
@@ -385,9 +372,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL SQUAD */}
       {modalSquad && (
-        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalSquad(false); }}>
+        <div className={styles.modalBg} onClick={e => { if (e.target===e.currentTarget) setModalSquad(false); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// nova squad</h3>
             <label className={styles.label}>empresa</label>
@@ -396,7 +382,7 @@ export default function AdminPage() {
               {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
             <label className={styles.label}>nome da squad</label>
-            <input className={styles.input} placeholder="Ex: Squad Alpha" value={novaSquad.nome} onChange={e => setNovaSquad(p=>({...p,nome:e.target.value}))} />
+            <input className={styles.input} placeholder="Ex: Sustentação" value={novaSquad.nome} onChange={e => setNovaSquad(p=>({...p,nome:e.target.value}))} />
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setModalSquad(false)}>cancelar</button>
               <button className={styles.btnPrimary} onClick={handleNovaSquad} disabled={saving}>{saving?'...':'> criar'}</button>
@@ -405,9 +391,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL USUÁRIO */}
       {modalUsuario && (
-        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalUsuario(false); }}>
+        <div className={styles.modalBg} onClick={e => { if (e.target===e.currentTarget) setModalUsuario(false); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// novo usuário</h3>
             <label className={styles.label}>nome</label>
@@ -419,11 +404,11 @@ export default function AdminPage() {
               <option value="">selecione...</option>
               {squads.map(s => <option key={s.id} value={s.id}>{s.empresa?.nome} — {s.nome}</option>)}
             </select>
-            <label className={styles.label}>tipo de usuário</label>
+            <label className={styles.label}>tipo</label>
             <select className={styles.select} value={novoUsuario.tipo} onChange={e => setNovoUsuario(p=>({...p,tipo:e.target.value}))}>
-              <option value="tecnico">técnico — vê só sua squad</option>
-              <option value="operador">operador — vê todas as squads</option>
-              <option value="master">master — acesso total + dashboard</option>
+              <option value="tecnico">técnico</option>
+              <option value="operador">operador</option>
+              <option value="master">master</option>
             </select>
             <label className={styles.label}>senha inicial</label>
             <input className={styles.input} type="text" placeholder="123" value={novoUsuario.senha} onChange={e => setNovoUsuario(p=>({...p,senha:e.target.value}))} />
@@ -440,9 +425,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL SENHA */}
       {modalSenha && (
-        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalSenha(null); }}>
+        <div className={styles.modalBg} onClick={e => { if (e.target===e.currentTarget) setModalSenha(null); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// editar senha</h3>
             <div className={styles.senhaInfo}>usuário: <span>{modalSenha.nome}</span></div>
@@ -450,41 +434,47 @@ export default function AdminPage() {
             <input className={styles.input} type="text" placeholder="nova senha..." value={novaSenha} onChange={e => setNovaSenha(e.target.value)} autoFocus />
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setModalSenha(null)}>cancelar</button>
-              <button className={styles.btnPrimary} onClick={handleSalvarSenha} disabled={saving || !novaSenha.trim()}>{saving?'...':'> salvar'}</button>
+              <button className={styles.btnPrimary} onClick={handleSalvarSenha} disabled={saving||!novaSenha.trim()}>{saving?'...':'> salvar'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL PARCEIRO */}
       {modalParceiro && (
-        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalParceiro(false); }}>
+        <div className={styles.modalBg} onClick={e => { if (e.target===e.currentTarget) setModalParceiro(false); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// novo parceiro / marca</h3>
+            <label className={styles.label}>empresa</label>
+            <select className={styles.select} value={novoParceiro.empresa_id} onChange={e => setNovoParceiro(p=>({...p,empresa_id:e.target.value}))}>
+              <option value="">selecione a empresa...</option>
+              {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+            </select>
             <label className={styles.label}>nome</label>
-            <input className={styles.input} placeholder="Ex: Google, Meta, Amazon..." value={novoParceiro}
-              onChange={e => setNovoParceiro(e.target.value)} autoFocus
-              onKeyDown={e => e.key === 'Enter' && handleNovoParceiro()} />
+            <input className={styles.input} placeholder="Ex: Via Mia, Google..." value={novoParceiro.nome}
+              onChange={e => setNovoParceiro(p=>({...p,nome:e.target.value}))} autoFocus />
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setModalParceiro(false)}>cancelar</button>
-              <button className={styles.btnPrimary} onClick={handleNovoParceiro} disabled={saving || !novoParceiro.trim()}>{saving?'...':'> criar'}</button>
+              <button className={styles.btnPrimary} onClick={handleNovoParceiro} disabled={saving||!novoParceiro.nome.trim()||!novoParceiro.empresa_id}>{saving?'...':'> criar'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL PRODUTO */}
       {modalProduto && (
-        <div className={styles.modalBg} onClick={e => { if (e.target === e.currentTarget) setModalProduto(false); }}>
+        <div className={styles.modalBg} onClick={e => { if (e.target===e.currentTarget) setModalProduto(false); }}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>// novo produto</h3>
+            <label className={styles.label}>empresa</label>
+            <select className={styles.select} value={novoProduto.empresa_id} onChange={e => setNovoProduto(p=>({...p,empresa_id:e.target.value}))}>
+              <option value="">selecione a empresa...</option>
+              {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+            </select>
             <label className={styles.label}>nome</label>
-            <input className={styles.input} placeholder="Ex: App Mobile, Plataforma Web..." value={novoProduto}
-              onChange={e => setNovoProduto(e.target.value)} autoFocus
-              onKeyDown={e => e.key === 'Enter' && handleNovoProduto()} />
+            <input className={styles.input} placeholder="Ex: Cashback, App Mobile..." value={novoProduto.nome}
+              onChange={e => setNovoProduto(p=>({...p,nome:e.target.value}))} />
             <div className={styles.modalFooter}>
               <button className={styles.btnCancel} onClick={() => setModalProduto(false)}>cancelar</button>
-              <button className={styles.btnPrimary} onClick={handleNovoProduto} disabled={saving || !novoProduto.trim()}>{saving?'...':'> criar'}</button>
+              <button className={styles.btnPrimary} onClick={handleNovoProduto} disabled={saving||!novoProduto.nome.trim()||!novoProduto.empresa_id}>{saving?'...':'> criar'}</button>
             </div>
           </div>
         </div>
