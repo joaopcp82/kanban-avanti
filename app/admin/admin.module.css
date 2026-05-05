@@ -12,13 +12,13 @@
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 .adminBadge { font-size: 10px; font-weight: 600; background: var(--amber-dim); color: var(--amber); padding: 3px 10px; border-radius: 99px; border: 1px solid var(--amber); }
 
-.statsRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; padding: 16px 20px; }
-.stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; }
-.statVal { font-size: 26px; font-weight: 700; }
+.statsRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; padding: 14px 20px; }
+.stat { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px; }
+.statVal { font-size: 24px; font-weight: 700; }
 .statLabel { font-size: 10px; color: var(--text2); margin-top: 2px; }
 
-.tabs { display: flex; gap: 2px; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg2); }
-.tab { font-size: 12px; font-weight: 500; padding: 11px 18px; border: none; background: none; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font); transition: all .15s; }
+.tabs { display: flex; gap: 2px; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg2); overflow-x: auto; }
+.tab { font-size: 12px; font-weight: 500; padding: 11px 16px; border: none; background: none; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font); transition: all .15s; white-space: nowrap; }
 .tab:hover { color: var(--blue); }
 .tabActive { color: var(--blue); border-bottom-color: var(--blue); }
 
@@ -33,7 +33,7 @@
 .trow:last-child { border-bottom: none; }
 .trow:hover { background: var(--bg3); }
 .rowName { font-weight: 500; }
-.mono { font-size: 11px; color: var(--text2); }
+.mono { font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .small { font-size: 11px; color: var(--text2); }
 .empty { padding: 20px; text-align: center; color: var(--text3); font-size: 12px; }
 

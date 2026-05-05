@@ -83,6 +83,17 @@
 .cardCreatedModal { font-size: 10px; color: var(--text3); white-space: nowrap; }
 .searchNum { font-size: 10px; font-weight: 700; color: var(--blue); margin-right: 6px; }
 
+/* CARD TAGS (parceiro/produto) */
+.cardTags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
+.cardTag { font-size: 9px; font-weight: 500; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+
+/* CARD META (relator + data) */
+.cardMeta { display: flex; justify-content: space-between; font-size: 9px; color: var(--text3); margin-top: 5px; border-top: 1px solid var(--border); padding-top: 4px; }
+
+/* RELATOR */
+.relatorInfo { font-size: 11px; color: var(--green); background: var(--green-dim); border: 1px solid var(--green); border-radius: var(--radius); padding: 6px 10px; margin-bottom: 10px; }
+.relatorBadge { font-size: 10px; color: var(--text2); margin-top: 3px; }
+
 /* MODALS */
 .modalBg { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
 .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 22px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
