@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { useSettings } from '../../lib/useSettings';
+import SettingsBar from '../../components/SettingsBar';
 import styles from './dashboard.module.css';
 
 const COLS = [
@@ -57,6 +59,7 @@ function Section({ title, children, accent }) {
 export default function DashboardPage() {
   const router = useRouter();
   const [session, setSession] = useState(null);
+  const { theme, toggleTheme, lang, changeLang, t: tr } = useSettings();
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState([]);
   const [squads, setSquads] = useState([]);
@@ -202,9 +205,10 @@ export default function DashboardPage() {
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.logo}>Kanban<span>Avanti</span><span className={styles.cursor}>_</span></div>
-          <div className={styles.breadcrumb}>{session.empresa?.nome} / <span className={styles.breadBlue}>dashboard CTO</span></div>
+          <div className={styles.breadcrumb}>{session.empresa?.nome} / <span className={styles.breadBlue}>dashboard</span></div>
         </div>
         <div className={styles.headerRight}>
+          <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
           <span className={styles.refreshBadge} title={`Atualizado: ${fmtDate(lastRefresh)}`}>↺ {fmtDate(lastRefresh)}</span>
           <button className={styles.btnBack} onClick={() => router.push('/kanban')}>← kanban</button>
         </div>

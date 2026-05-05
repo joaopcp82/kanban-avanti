@@ -3,10 +3,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
+import { useSettings } from '../../lib/useSettings';
+import SettingsBar from '../../components/SettingsBar';
 import styles from './login.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { theme, toggleTheme, lang, changeLang } = useSettings();
   const [empresas, setEmpresas] = useState([]);
   const [squads, setSquads] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -195,6 +198,9 @@ export default function LoginPage() {
           </div>
         </div>
         <Link href="/" className={styles.back}>← voltar ao site</Link>
+        <div style={{ marginTop: 16 }}>
+          <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
+        </div>
       </div>
     </div>
   );

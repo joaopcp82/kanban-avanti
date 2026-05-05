@@ -1,0 +1,55 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flags {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 4px;
+}
+
+.flag {
+  font-size: 14px;
+  padding: 2px 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  opacity: 0.4;
+  transition: opacity .15s, transform .15s;
+  line-height: 1;
+}
+
+.flag:hover {
+  opacity: 0.8;
+  transform: scale(1.15);
+}
+
+.flagActive {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.themeBtn {
+  font-size: 14px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all .15s;
+  line-height: 1;
+}
+
+.themeBtn:hover {
+  border-color: var(--border2);
+  color: var(--text);
+}

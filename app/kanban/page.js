@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { useSettings } from '../../lib/useSettings';
+import SettingsBar from '../../components/SettingsBar';
 import styles from './kanban.module.css';
 
 const COLS = [
@@ -64,6 +66,7 @@ export default function KanbanPage() {
   const [meusFiltro, setMeusFiltro] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const { theme, toggleTheme, lang, changeLang, t } = useSettings();
   const refreshRef = useRef(null);
   const sessRef = useRef(null);
   const activeSquadRef = useRef(null);
@@ -347,16 +350,17 @@ export default function KanbanPage() {
   const canDeleteComment = (c) => c.autor_id === session?.usuario?.id || canDelete();
   const handleLogout = () => { sessionStorage.removeItem('ka_session'); router.push('/login'); };
 
-  const sess = session;
+  const TCOLS = COLS.map(c => ({ ...c, label: t[`col_${c.id}`] || c.label }));
   const vis = visibleCards();
   const prioColor = { high: '#ef4444', med: '#f59e0b', low: '#22c55e' };
   const prioBg    = { high: '#3f0808', med: '#3d1f02', low: '#14532d' };
-  const prioLabel = { high: 'alta', med: 'média', low: 'baixa' };
+  const prioLabel = { high: t.high, med: t.medium, low: t.low };
   const tipoColor = { master: '#f59e0b', operador: '#a855f7', tecnico: '#3b82f6' };
   const histIcon  = { criacao: '✦', status: '⟳', squad: '⇄', responsavel: '◎', edicao: '✎' };
   const histColor = { criacao: '#22c55e', status: '#3b82f6', squad: '#a855f7', responsavel: '#f59e0b', edicao: '#6b7280' };
 
-  if (!sess) return null;
+  if (!session) return null;
+  const sess = session;
 
   return (
     <div className={styles.page}>
@@ -373,6 +377,7 @@ export default function KanbanPage() {
           </div>
         </div>
         <div className={styles.headerRight}>
+          <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
           <span className={styles.refreshBadge} title={`Último refresh: ${fmtDate(lastRefresh)}`}>↺5m</span>
           <div className={styles.searchWrap} ref={searchRef}>
             <button className={`${styles.searchBtn} ${showSearch ? styles.searchBtnActive : ''}`}
@@ -419,7 +424,7 @@ export default function KanbanPage() {
       )}
 
       <div className={styles.statsRow}>
-        {COLS.map(col => (
+        {TCOLS.map(col => (
           <div key={col.id} className={styles.stat}>
             <div className={styles.statVal} style={{ color: col.color }}>{cards.filter(c => c.status === col.id).length}</div>
             <div className={styles.statLabel}>{col.label}</div>
@@ -429,7 +434,7 @@ export default function KanbanPage() {
 
       {loading ? <div className={styles.loading}>// carregando...</div> : (
         <div className={styles.board}>
-          {COLS.map(col => {
+          {TCOLS.map(col => {
             const colCards = vis.filter(c => c.status === col.id);
             return (
               <div key={col.id} className={styles.col} style={{ '--col-color': col.color }}
@@ -567,7 +572,7 @@ export default function KanbanPage() {
                 </select>
                 <label className={styles.label}>status</label>
                 <select className={styles.select} value={editForm.status} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
-                  {COLS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  {TCOLS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
                 <div className={styles.row2}>
                   <div style={{ flex:1 }}>
