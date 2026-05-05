@@ -178,17 +178,20 @@ export default function AdminPage() {
 
       <div className={styles.statsRow}>
         {[
-          { val: empresas.length, label: 'empresas', color: '#3b82f6' },
-          { val: squads.length, label: 'squads', color: '#22c55e' },
-          { val: usuarios.filter(u => u.tipo==='master').length, label: 'masters', color: '#f59e0b' },
-          { val: usuarios.filter(u => u.tipo==='operador').length, label: 'operadores', color: '#a855f7' },
-          { val: usuarios.filter(u => u.tipo==='tecnico').length, label: 'técnicos', color: '#3b82f6' },
-          { val: parceiros.filter(p => p.ativo).length, label: 'parceiros', color: '#14b8a6' },
-          { val: produtos.filter(p => p.ativo).length, label: 'produtos', color: '#ec4899' },
+          { val: empresas.length, label: 'empresas', color: '#3b82f6', tab: 'empresas' },
+          { val: squads.length, label: 'squads', color: '#22c55e', tab: 'squads' },
+          { val: usuarios.filter(u => u.tipo==='master').length, label: 'masters', color: '#f59e0b', tab: 'usuarios' },
+          { val: usuarios.filter(u => u.tipo==='operador').length, label: 'operadores', color: '#a855f7', tab: 'usuarios' },
+          { val: usuarios.filter(u => u.tipo==='tecnico').length, label: 'técnicos', color: '#3b82f6', tab: 'usuarios' },
+          { val: parceiros.filter(p => p.ativo).length, label: 'parceiros', color: '#14b8a6', tab: 'parceiros' },
+          { val: produtos.filter(p => p.ativo).length, label: 'produtos', color: '#ec4899', tab: 'produtos' },
         ].map(s => (
-          <div key={s.label} className={styles.stat}>
+          <div key={s.label} className={styles.stat} onClick={() => setTab(s.tab)}
+            style={{ cursor: 'pointer', transition: 'border-color .15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = '#333'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = ''}>
             <div className={styles.statVal} style={{ color: s.color }}>{s.val}</div>
-            <div className={styles.statLabel}>{s.label}</div>
+            <div className={styles.statLabel}>{s.label} ↗</div>
           </div>
         ))}
       </div>

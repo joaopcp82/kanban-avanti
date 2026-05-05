@@ -39,6 +39,7 @@
 .searchResultMeta { display: flex; gap: 8px; font-size: 10px; color: var(--text2); flex-wrap: wrap; }
 .searchNum { font-size: 10px; font-weight: 700; color: var(--blue); margin-right: 5px; }
 
+.refreshBadge { font-size: 9px; color: var(--text3); padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; cursor: default; }
 .dashBtn { font-size: 13px; padding: 5px 9px; border: 1px solid #2e1065; border-radius: var(--radius); background: #2e1065; color: #a855f7; cursor: pointer; font-family: var(--font); }
 .filterBtn { font-size: 11px; padding: 5px 9px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg3); color: var(--text2); cursor: pointer; font-family: var(--font); }
 .filterActive { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
