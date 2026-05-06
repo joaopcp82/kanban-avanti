@@ -9,32 +9,31 @@ import styles from './login.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { theme, toggleTheme, lang, changeLang } = useSettings();
+  const { theme, toggleTheme, lang, changeLang, t } = useSettings();
+
   const [empresas, setEmpresas] = useState([]);
   const [squads, setSquads] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
+  const [tecnicosMasters, setTecnicosMasters] = useState([]);
+  const [operadores, setOperadores] = useState([]);
+
   const [selectedEmpresa, setSelectedEmpresa] = useState('');
   const [selectedSquad, setSelectedSquad] = useState('');
   const [selectedUsuario, setSelectedUsuario] = useState('');
+  const [tipoSelecionado, setTipoSelecionado] = useState(null); // 'normal' | 'operador'
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingEmpresas, setLoadingEmpresas] = useState(true);
-  // Tipo do usuário selecionado (para saber se precisa de squad)
-  const [usuarioTipo, setUsuarioTipo] = useState(null);
-  // Modo de login: null = escolha empresa primeiro, depois descobre
-  const [loginMode, setLoginMode] = useState(null); // 'normal' | 'semSquad'
 
   useEffect(() => {
-    supabase.from('empresas').select('*').order('nome')
-      .then(({ data }) => {
-        if (!data) { setLoadingEmpresas(false); return; }
-        // Sellbie sempre primeiro
-        const sellbie = data.filter(e => e.nome.toLowerCase().includes('sellbie'));
-        const rest = data.filter(e => !e.nome.toLowerCase().includes('sellbie'));
-        setEmpresas([...sellbie, ...rest]);
-        setLoadingEmpresas(false);
-      });
+    supabase.from('empresas').select('*').order('nome').then(({ data }) => {
+      if (!data) { setLoadingEmpresas(false); return; }
+      // Sellbie sempre primeiro
+      const sellbie = data.filter(e => e.nome.toLowerCase().includes('sellbie'));
+      const rest = data.filter(e => !e.nome.toLowerCase().includes('sellbie'));
+      setEmpresas([...sellbie, ...rest]);
+      setLoadingEmpresas(false);
+    });
   }, []);
 
   const handleEmpresa = async (id) => {
@@ -44,16 +43,23 @@ export default function LoginPage() {
     setSenha('');
     setErro('');
     setSquads([]);
-    setUsuarios([]);
-    setLoginMode(null);
-    setUsuarioTipo(null);
+    setTecnicosMasters([]);
+    setOperadores([]);
+    setTipoSelecionado(null);
     if (!id) return;
-    const { data } = await supabase.from('squads').select('*').eq('empresa_id', id).order('nome');
-    if (!data) return;
-    // Sustentação sempre primeiro
-    const sust = data.filter(s => s.nome.toLowerCase().includes('sustenta'));
-    const rest = data.filter(s => !s.nome.toLowerCase().includes('sustenta'));
+
+    // Carrega squads + operadores em paralelo
+    const [{ data: squadsData }, { data: opsData }] = await Promise.all([
+      supabase.from('squads').select('*').eq('empresa_id', id).order('nome'),
+      supabase.from('usuarios').select('*').eq('empresa_id', id).eq('ativo', true).eq('tipo', 'operador').order('nome'),
+    ]);
+
+    // Sustentação primeiro nas squads
+    const sq = squadsData || [];
+    const sust = sq.filter(s => s.nome.toLowerCase().includes('sustenta'));
+    const rest = sq.filter(s => !s.nome.toLowerCase().includes('sustenta'));
     setSquads([...sust, ...rest]);
+    setOperadores(opsData || []);
   };
 
   const handleSquad = async (id) => {
@@ -61,61 +67,44 @@ export default function LoginPage() {
     setSelectedUsuario('');
     setSenha('');
     setErro('');
-    setUsuarios([]);
-    setUsuarioTipo(null);
+    setTecnicosMasters([]);
+    setTipoSelecionado(null);
     if (!id) return;
-    // Carrega usuários da squad (técnicos e masters)
     const { data } = await supabase.from('usuarios').select('*')
       .eq('squad_id', id).eq('ativo', true)
       .in('tipo', ['tecnico', 'master'])
       .order('nome');
-    setUsuarios(data || []);
+    setTecnicosMasters(data || []);
   };
 
-  // Quando seleciona empresa, verifica se há operadores (sem squad)
-  const handleCheckOperadores = async (empresaId) => {
-    const { data } = await supabase.from('usuarios').select('*')
-      .eq('empresa_id', empresaId).eq('ativo', true).eq('tipo', 'operador').order('nome');
-    return data || [];
-  };
-
-  const handleUsuario = (id) => {
+  const handleSelectUsuario = (id, tipo) => {
     setSelectedUsuario(id);
+    setTipoSelecionado(tipo);
     setSenha('');
     setErro('');
-    const u = usuarios.find(x => x.id === id);
-    setUsuarioTipo(u?.tipo || null);
-  };
-
-  // Login sem squad (operadores)
-  const [operadores, setOperadores] = useState([]);
-  const [showOperador, setShowOperador] = useState(false);
-
-  const handleEmpresaChange = async (id) => {
-    await handleEmpresa(id);
-    if (!id) { setShowOperador(false); setOperadores([]); return; }
-    const ops = await handleCheckOperadores(id);
-    setOperadores(ops);
-    setShowOperador(ops.length > 0);
+    // Se operador, limpa squad
+    if (tipo === 'operador') setSelectedSquad('');
   };
 
   const handleLogin = async () => {
     setErro('');
-    if (!selectedEmpresa) { setErro('Selecione a empresa.'); return; }
-    if (!selectedUsuario) { setErro('Selecione o usuário.'); return; }
-    if (!senha) { setErro('Digite sua senha.'); return; }
+    if (!selectedEmpresa) { setErro(t.fillAll); return; }
+    if (!selectedUsuario) { setErro(t.fillAll); return; }
+    if (!senha) { setErro(t.enterPassword); return; }
 
     setLoading(true);
-    const todosUsuarios = [...usuarios, ...operadores];
+    const todosUsuarios = [...tecnicosMasters, ...operadores];
     const usuario = todosUsuarios.find(u => u.id === selectedUsuario);
-    const senhaCorreta = usuario?.senha || '123';
-    if (senha !== senhaCorreta) { setErro('// senha incorreta'); setLoading(false); return; }
+    if (!usuario || senha !== (usuario.senha || '123')) {
+      setErro(t.wrongPassword);
+      setLoading(false);
+      return;
+    }
 
     const empresa = empresas.find(e => e.id === selectedEmpresa);
-    let squad = null;
-    if (selectedSquad) squad = squads.find(s => s.id === selectedSquad);
+    const squad = selectedSquad ? squads.find(s => s.id === selectedSquad) : { id: null, nome: 'Operador' };
 
-    sessionStorage.setItem('ka_session', JSON.stringify({ empresa, squad: squad || { id: null, nome: 'Operador' }, usuario }));
+    sessionStorage.setItem('ka_session', JSON.stringify({ empresa, squad, usuario }));
     router.push('/kanban');
   };
 
@@ -124,52 +113,58 @@ export default function LoginPage() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <Link href="/" className={styles.logo}>Kanban<span>Avanti</span><span className={styles.cursor}>_</span></Link>
-        <p className={styles.sub}>// selecione sua empresa para continuar</p>
-        <div className={styles.card}>
+        <Link href="/" className={styles.logo}>
+          Kanban<span>Avanti</span><span className={styles.cursor}>_</span>
+        </Link>
+        <p className={styles.sub}>{t.selectCompany}</p>
 
+        <div className={styles.card}>
           {/* EMPRESA */}
           <div className={styles.field}>
-            <label className={styles.label}>$ empresa</label>
+            <label className={styles.label}>{t.company}</label>
             <select className={styles.select} value={selectedEmpresa}
-              onChange={e => handleEmpresaChange(e.target.value)} disabled={loadingEmpresas}>
-              <option value="">{loadingEmpresas ? 'carregando...' : 'selecione a empresa...'}</option>
+              onChange={e => handleEmpresa(e.target.value)} disabled={loadingEmpresas}>
+              <option value="">{loadingEmpresas ? t.loading : t.selectCompanyOpt}</option>
               {empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </select>
           </div>
 
-          {/* SQUAD — só aparece se tem squads e não selecionou operador */}
+          {/* OPERADORES (aparecem logo após empresa, sem precisar de squad) */}
+          {selectedEmpresa && operadores.length > 0 && (
+            <div className={styles.field}>
+              <label className={styles.label}>{t.operator}</label>
+              <select className={styles.select}
+                value={isOperadorSelected ? selectedUsuario : ''}
+                onChange={e => {
+                  if (e.target.value) handleSelectUsuario(e.target.value, 'operador');
+                  else { setSelectedUsuario(''); setTipoSelecionado(null); setSenha(''); }
+                }}>
+                <option value="">selecione o operador...</option>
+                {operadores.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* SQUAD — só se não selecionou operador */}
           {selectedEmpresa && squads.length > 0 && !isOperadorSelected && (
             <div className={styles.field}>
-              <label className={styles.label}>$ squad</label>
+              <label className={styles.label}>{t.squad}</label>
               <select className={styles.select} value={selectedSquad}
                 onChange={e => handleSquad(e.target.value)}>
-                <option value="">selecione a squad...</option>
+                <option value="">{t.selectSquadOpt}</option>
                 {squads.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
               </select>
             </div>
           )}
 
-          {/* USUÁRIOS TÉCNICOS/MASTERS da squad */}
-          {selectedSquad && usuarios.length > 0 && (
+          {/* USUÁRIOS da squad (técnicos/masters) */}
+          {selectedSquad && tecnicosMasters.length > 0 && !isOperadorSelected && (
             <div className={styles.field}>
-              <label className={styles.label}>$ usuário</label>
+              <label className={styles.label}>{t.user}</label>
               <select className={styles.select} value={selectedUsuario}
-                onChange={e => handleUsuario(e.target.value)}>
-                <option value="">selecione o usuário...</option>
-                {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* OPERADORES — aparecem separados sem precisar de squad */}
-          {showOperador && operadores.length > 0 && (
-            <div className={styles.field}>
-              <label className={styles.label}>$ operador</label>
-              <select className={styles.select} value={isOperadorSelected ? selectedUsuario : ''}
-                onChange={e => { setSelectedUsuario(e.target.value); setSenha(''); setErro(''); setSelectedSquad(''); }}>
-                <option value="">selecione o operador...</option>
-                {operadores.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                onChange={e => handleSelectUsuario(e.target.value, 'normal')}>
+                <option value="">{t.selectUserOpt}</option>
+                {tecnicosMasters.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
               </select>
             </div>
           )}
@@ -177,11 +172,13 @@ export default function LoginPage() {
           {/* SENHA */}
           {selectedUsuario && (
             <div className={styles.field}>
-              <label className={styles.label}>$ senha</label>
+              <label className={styles.label}>{t.password}</label>
               <input className={styles.input} type="password" placeholder="••••••••"
-                value={senha} onChange={e => { setSenha(e.target.value); setErro(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus />
-              <div className={styles.hint}>// senha padrão: 123</div>
+                value={senha}
+                onChange={e => { setSenha(e.target.value); setErro(''); }}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                autoFocus />
+              <div className={styles.hint}>{t.defaultPassword}</div>
             </div>
           )}
 
@@ -189,15 +186,16 @@ export default function LoginPage() {
 
           <button className={styles.btnLogin} onClick={handleLogin}
             disabled={!selectedEmpresa || !selectedUsuario || !senha || loading}>
-            {loading ? 'autenticando...' : '> entrar no kanban'}
+            {loading ? t.authenticating : t.enterKanban}
           </button>
 
           <div className={styles.footer}>
-            <span>sem conta?</span>{' '}
-            <Link href="/pricing" className={styles.link}>ver planos</Link>
+            <span>{t.noAccount}</span>{' '}
+            <Link href="/pricing" className={styles.link}>{t.seePlans}</Link>
           </div>
         </div>
-        <Link href="/" className={styles.back}>← voltar ao site</Link>
+
+        <Link href="/" className={styles.back}>{t.backToSite}</Link>
         <div style={{ marginTop: 16 }}>
           <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
         </div>

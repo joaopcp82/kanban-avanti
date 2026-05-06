@@ -66,6 +66,7 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true);
   const [meusFiltro, setMeusFiltro] = useState(false);
   const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null); // card being hovered during drag
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const { theme, toggleTheme, lang, changeLang, t } = useSettings();
   const refreshRef = useRef(null);
@@ -128,7 +129,7 @@ export default function KanbanPage() {
     const [squadsRes, parcRes, prodRes] = await Promise.all([
       canSeeAll(sess)
         ? supabase.from('squads').select('*').eq('empresa_id', empresaId).order('nome')
-        : Promise.resolve({ data: [sess.squad] }),
+        : Promise.resolve({ data: sess.squad?.id ? [sess.squad] : [] }),
       supabase.from('parceiros').select('*').eq('empresa_id', empresaId).eq('ativo', true).order('nome'),
       supabase.from('produtos').select('*').eq('empresa_id', empresaId).eq('ativo', true).order('nome'),
     ]);
@@ -136,8 +137,8 @@ export default function KanbanPage() {
     setAllSquads(sorted);
     setParceiros(parcRes.data || []);
     setProdutos(prodRes.data || []);
-    const first = canSeeAll(sess) ? sorted[0] : sess.squad;
-    if (first) {
+    const first = canSeeAll(sess) ? sorted[0] : (sess.squad?.id ? sess.squad : sorted[0]);
+    if (first?.id) {
       setActiveSquadId(first.id);
       activeSquadRef.current = first.id;
       await loadSquadData(first.id, empresaId);
@@ -150,7 +151,7 @@ export default function KanbanPage() {
     const [{ data: cardsData }, { data: usersData }] = await Promise.all([
       supabase.from('cards')
         .select('*, responsavel:responsavel_id(id,nome), parceiro:parceiro_id(nome), produto:produto_id(nome)')
-        .eq('squad_id', squadId).order('numero', { ascending: false }),
+        .eq('squad_id', squadId).order('posicao', { ascending: true }).order('created_at'),
       supabase.from('usuarios').select('*').eq('empresa_id', empresaId).eq('ativo', true).order('nome'),
     ]);
     setCards(cardsData || []);
@@ -208,17 +209,62 @@ export default function KanbanPage() {
     });
   };
 
-  const handleDrop = async (colId) => {
+  const handleDrop = async (colId, overCardId = null) => {
     if (!dragId) return;
     const card = cards.find(c => c.id === dragId);
-    if (!card || card.status === colId) return;
+    if (!card) return;
+
+    const sameCol = card.status === colId;
     const colAnterior = COLS.find(c => c.id === card.status);
     const colNova = COLS.find(c => c.id === colId);
-    setCards(prev => prev.map(c => c.id === dragId ? { ...c, status: colId } : c));
-    await supabase.from('cards').update({ status: colId }).eq('id', dragId);
-    await addHistorico(dragId, 'status', colAnterior?.label, colNova?.label, `Status: "${colAnterior?.label}" → "${colNova?.label}"`);
-    await notifyMove(card, colId);
+
+    // Build new ordered list
+    let newCards = [...cards];
+    const cardIdx = newCards.findIndex(c => c.id === dragId);
+    if (cardIdx === -1) return;
+
+    // Update status
+    newCards[cardIdx] = { ...newCards[cardIdx], status: colId };
+
+    if (overCardId && overCardId !== dragId) {
+      // Reorder: move dragged card before the card it was dropped on
+      const dragged = newCards.splice(cardIdx, 1)[0];
+      const targetIdx = newCards.findIndex(c => c.id === overCardId);
+      if (targetIdx !== -1) newCards.splice(targetIdx, 0, dragged);
+    }
+
+    // Recalculate posicao for cards in affected column(s)
+    let posCounter = { };
+    const updatedCards = newCards.map(c => {
+      const col = c.status;
+      if (!posCounter[col]) posCounter[col] = 0;
+      posCounter[col]++;
+      return { ...c, posicao: posCounter[col] };
+    });
+
+    setCards(updatedCards);
+    setDragOverId(null);
     setDragId(null);
+
+    // Persist to DB
+    const updates = [];
+    if (!sameCol) {
+      await supabase.from('cards').update({ status: colId }).eq('id', dragId);
+      await addHistorico(dragId, 'status', colAnterior?.label, colNova?.label, `Status: "${colAnterior?.label}" → "${colNova?.label}"`);
+      await notifyMove(card, colId);
+    }
+
+    // Update posicao for all cards in affected cols
+    const affectedCols = [...new Set([card.status, colId])];
+    for (const col of affectedCols) {
+      const colCards = updatedCards.filter(c => c.status === col);
+      for (let i = 0; i < colCards.length; i++) {
+        if (colCards[i].posicao !== cards.find(c => c.id === colCards[i].id)?.posicao) {
+          updates.push(supabase.from('cards').update({ posicao: colCards[i].posicao, status: col }).eq('id', colCards[i].id));
+        }
+      }
+    }
+    await Promise.all(updates);
   };
 
   const defaultSquadId = () => allSquads.length > 0 ? allSquads[0].id : activeSquadId;
@@ -440,7 +486,12 @@ export default function KanbanPage() {
             return (
               <div key={col.id} className={styles.col} style={{ '--col-color': col.color }}
                 onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add(styles.colOver); }}
-                onDragLeave={e => e.currentTarget.classList.remove(styles.colOver)}
+                onDragLeave={e => {
+                  // Only remove if leaving the col itself (not a child)
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    e.currentTarget.classList.remove(styles.colOver);
+                  }
+                }}
                 onDrop={e => { e.currentTarget.classList.remove(styles.colOver); handleDrop(col.id); }}>
                 <div className={styles.colHeader}>
                   <span className={styles.colTitle} style={{ color: col.color }}>{col.label}</span>
@@ -451,9 +502,15 @@ export default function KanbanPage() {
                     const ps = prazoStatus(card.prazo);
                     const initials = (card.responsavel?.nome || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
                     const isMe = card.responsavel_id === sess.usuario?.id;
+                    const isDragOver = dragOverId === card.id && dragId !== card.id;
                     return (
-                      <div key={card.id} className={styles.card} draggable
-                        onDragStart={() => setDragId(card.id)} onDragEnd={() => setDragId(null)}
+                      <div key={card.id} className={`${styles.card} ${isDragOver ? styles.cardDragOver : ''}`}
+                        draggable
+                        onDragStart={() => setDragId(card.id)}
+                        onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragOverId(card.id); }}
+                        onDragLeave={() => setDragOverId(null)}
+                        onDrop={e => { e.stopPropagation(); e.currentTarget.closest(`.${styles.col}`)?.classList.remove(styles.colOver); handleDrop(col.id, card.id); }}
                         onClick={() => openEdit(card)}
                         style={{ borderColor: isMe ? col.color+'88' : undefined }}>
                         {card.numero && <div className={styles.cardNum}>{card.numero}</div>}
@@ -477,6 +534,10 @@ export default function KanbanPage() {
                       </div>
                     );
                   })}
+                  {/* Drop zone at bottom of column */}
+                  <div className={styles.colDropZone}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.stopPropagation(); handleDrop(col.id); }} />
                 </div>
               </div>
             );
