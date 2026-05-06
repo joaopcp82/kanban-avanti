@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { useSettings } from '../lib/useSettings';
+import SettingsBar from '../components/SettingsBar';
 import styles from './page.module.css';
 
 const STATUS_FLOW = [
@@ -14,13 +16,16 @@ const STATUS_FLOW = [
 ];
 
 export default function HomePage() {
+  const { theme, toggleTheme, lang, changeLang } = useSettings();
+
   return (
     <div className={styles.page}>
       <nav className={styles.nav}>
         <div className={styles.logo}>Kanban<span className={styles.accent}>Avanti</span><span className={styles.cursor}>_</span></div>
-        <div className={styles.navLinks}>
+        <div className={styles.navRight}>
           <Link href="/pricing" className={styles.navLink}>planos</Link>
           <Link href="/login" className={styles.navLink}>entrar</Link>
+          <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
           <Link href="/pricing" className={styles.navCta}>começar grátis</Link>
         </div>
       </nav>

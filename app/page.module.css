@@ -1,21 +1,14 @@
 .page { min-height: 100vh; background: var(--bg); }
 
-.nav {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 40px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 10;
-}
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; flex-wrap: wrap; gap: 8px; }
 .logo { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
 .accent { color: var(--blue); margin-left: 4px; }
 .cursor { color: var(--blue); animation: blink 1s step-end infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-.navLinks { display: flex; gap: 8px; align-items: center; }
-.navLink { font-size: 12px; color: var(--text2); padding: 6px 12px; border-radius: var(--radius); transition: color .15s; }
+.navRight { display: flex; gap: 8px; align-items: center; }
+.navLink { font-size: 12px; color: var(--text2); padding: 6px 12px; border-radius: 6px; transition: color .15s; }
 .navLink:hover { color: var(--text); background: var(--bg3); }
-.navCta { font-size: 12px; font-weight: 500; background: var(--blue); color: #fff; padding: 7px 16px; border-radius: var(--radius); transition: opacity .15s; }
+.navCta { font-size: 12px; font-weight: 500; background: var(--blue); color: white; padding: 7px 16px; border-radius: var(--radius); }
 .navCta:hover { opacity: .85; }
 
 .hero { text-align: center; padding: 80px 32px 56px; max-width: 640px; margin: 0 auto; }
@@ -24,9 +17,9 @@
 .highlight { color: var(--blue); }
 .heroSub { font-size: 15px; color: var(--text2); line-height: 1.8; margin-bottom: 36px; }
 .heroBtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.btnPrimary { background: var(--blue); color: #fff; padding: 11px 28px; border-radius: var(--radius); font-size: 13px; font-weight: 600; transition: opacity .15s; }
+.btnPrimary { background: var(--blue); color: #fff; padding: 11px 28px; border-radius: var(--radius); font-size: 13px; font-weight: 600; }
 .btnPrimary:hover { opacity: .85; }
-.btnGhost { background: transparent; color: var(--text2); border: 1px solid var(--border2); padding: 11px 28px; border-radius: var(--radius); font-size: 13px; transition: all .15s; }
+.btnGhost { background: transparent; color: var(--text2); border: 1px solid var(--border2); padding: 11px 28px; border-radius: var(--radius); font-size: 13px; }
 .btnGhost:hover { border-color: var(--blue); color: var(--blue); }
 
 .flowSection { padding: 0 32px 56px; text-align: center; }
@@ -36,29 +29,18 @@
 .pill { font-size: 11px; font-weight: 500; padding: 5px 11px; border-radius: 99px; }
 .arrow { font-size: 11px; color: var(--text3); }
 
-.metrics {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px; padding: 0 32px 56px; max-width: 900px; margin: 0 auto;
-}
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding: 0 32px 56px; max-width: 900px; margin: 0 auto; }
 .metricCard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
 .metricVal { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
 .metricLabel { font-size: 11px; color: var(--text2); }
 
-.features {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px; padding: 0 32px 72px; max-width: 900px; margin: 0 auto;
-}
-.featureCard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; transition: border-color .2s; }
-.featureCard:hover { border-color: var(--border2); }
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding: 0 32px 72px; max-width: 900px; margin: 0 auto; }
+.featureCard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; }
 .featureIcon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 14px; }
 .featureTitle { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
 .featureSub { font-size: 12px; color: var(--text2); line-height: 1.6; }
 
-.footer {
-  border-top: 1px solid var(--border); padding: 24px 40px;
-  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
-  background: var(--bg2);
-}
+.footer { border-top: 1px solid var(--border); padding: 24px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; background: var(--bg2); }
 .footerLinks { display: flex; gap: 20px; font-size: 12px; color: var(--text2); }
 .footerLinks a:hover { color: var(--blue); }
 .footerCopy { font-size: 11px; color: var(--text3); }

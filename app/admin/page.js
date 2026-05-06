@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { useSettings } from '../../lib/useSettings';
+import SettingsBar from '../../components/SettingsBar';
 import styles from './admin.module.css';
 
 function fmtDate(d) {
@@ -11,6 +13,7 @@ function fmtDate(d) {
 
 export default function AdminPage() {
   const router = useRouter();
+  const { theme, toggleTheme, lang, changeLang } = useSettings();
   const [tab, setTab] = useState('empresas');
   const [empresas, setEmpresas] = useState([]);
   const [squads, setSquads] = useState([]);
@@ -157,6 +160,9 @@ export default function AdminPage() {
             onKeyDown={e => e.key === 'Enter' && handleLogin()} autoFocus />
           <button className={styles.btnPrimary} onClick={handleLogin}>&gt; entrar</button>
           <button className={styles.btnGhost} onClick={() => router.push('/')}>← voltar</button>
+          <div style={{ marginTop: 8 }}>
+            <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
+          </div>
         </div>
       </div>
     );
@@ -170,6 +176,7 @@ export default function AdminPage() {
           <div className={styles.adminBadge}>admin</div>
         </div>
         <div className={styles.headerRight}>
+          <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
           <button className={styles.btnSmall} onClick={() => router.push('/dashboard')}>dash</button>
           <button className={styles.btnSmall} onClick={() => router.push('/login')}>app</button>
           <button className={styles.btnDanger} onClick={() => { sessionStorage.removeItem('ka_admin'); setAutenticado(false); }}>sair</button>

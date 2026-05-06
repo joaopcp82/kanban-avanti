@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { useSettings } from '../../lib/useSettings';
+import SettingsBar from '../../components/SettingsBar';
 import styles from './pricing.module.css';
 
 const PLANS = [
@@ -15,6 +17,8 @@ const PLANS = [
 ];
 
 export default function PricingPage() {
+  const { theme, toggleTheme, lang, changeLang } = useSettings();
+
   const handleCheckout = (e) => {
     e.preventDefault();
     const qty = parseInt(document.getElementById('qty')?.value || '1', 10);
@@ -25,7 +29,10 @@ export default function PricingPage() {
     <div className={styles.page}>
       <nav className={styles.nav}>
         <Link href="/" className={styles.logo}>Kanban<span>Avanti</span><span className={styles.cursor}>_</span></Link>
-        <Link href="/login" className={styles.navLink}>entrar</Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
+          <Link href="/login" className={styles.navLink}>entrar</Link>
+        </div>
       </nav>
       <div className={styles.header}>
         <div className={styles.badge}>// planos e preços</div>

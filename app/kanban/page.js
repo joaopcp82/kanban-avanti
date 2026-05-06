@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { useSettings } from '../../lib/useSettings';
 import SettingsBar from '../../components/SettingsBar';
+import RefreshTimer from '../../components/RefreshTimer';
 import styles from './kanban.module.css';
 
 const COLS = [
@@ -378,7 +379,7 @@ export default function KanbanPage() {
         </div>
         <div className={styles.headerRight}>
           <SettingsBar theme={theme} toggleTheme={toggleTheme} lang={lang} changeLang={changeLang} />
-          <span className={styles.refreshBadge} title={`Último refresh: ${fmtDate(lastRefresh)}`}>↺5m</span>
+          <RefreshTimer lastRefresh={lastRefresh} />
           <div className={styles.searchWrap} ref={searchRef}>
             <button className={`${styles.searchBtn} ${showSearch ? styles.searchBtnActive : ''}`}
               onClick={() => { setShowSearch(v => !v); setSearchQuery(''); setSearchResults([]); }}>⌕</button>
